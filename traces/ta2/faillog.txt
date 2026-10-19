@@ -3,7 +3,17 @@
 Topic: the failure log (failure_log.db)
 ========================================================================
 Failures by type, all runs so far:
-  schema       1
+  busy                 5
+  schema               2
+  bad_result           2
+  unsupported_answer   1
+  unsafe               1
+  unavailable          1
+  syntax               1
 
 Last 5 rows:
-  2026-10-19T16:16:58 | advice-ff3e | single_agent | schema | SELECT order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct | Error: ambiguous column name: order_id. Check the table and column nam | retry with advice from: Ambiguous column name, Unknown column (no such | 2
+  2026-10-19T17:25:59 | team-437354 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 2
+  2026-10-19T17:26:00 | team-437354 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 1
+  2026-10-19T17:26:01 | team-437354 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 0
+  2026-10-19T17:26:01 | team-437354 | monitor | unsupported_answer |  | the answer was written without a valid result (last result: Error: dat | recovery stopped: retry budget used up | 0
+  2026-10-19T17:26:08 | contain-on-b857 | monitor | bad_result | SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.q | total_revenue = 24030020.00 is more than the shop's all-time gross sal | recovery advised a retry using guide sections ['Suspicious numbers (si | 2

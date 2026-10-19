@@ -29,7 +29,8 @@ Answer:"""
 
 ADVICE_PROMPT = """A SQL query on the Sahyadri Stores database failed.
 Using ONLY the guide sections below, write one or two sentences telling the query writer
-exactly what to change. Name the specific table, column or function. Do not write the whole query.
+exactly what to do next. If the query itself is wrong, name the table, column or function to
+change. Do not write the whole query.
 If the guide does not cover this error, reply exactly: I don't know.
 
 Guide sections:

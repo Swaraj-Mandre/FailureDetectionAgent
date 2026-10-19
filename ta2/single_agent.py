@@ -86,7 +86,7 @@ def classify(error):
         return "busy"
     if "no such column" in text or "no such table" in text or "ambiguous column" in text:
         return "schema"
-    if "syntax error" in text or "no such function" in text or "statement" in text or "must start" in text:
+    if any(word in text for word in ("syntax error", "incomplete input", "no such function", "statement", "must start")):
         return "syntax"
     if "invoking tool" in text or "validation error" in text:
         return "arguments"

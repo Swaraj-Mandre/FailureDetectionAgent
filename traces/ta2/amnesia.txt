@@ -19,7 +19,7 @@ Q2: And in September?
             Home & Kitchen | 46760.20
             Snacks & Beverages | 38227.25
             Stationery | 26568.05
-  AGENT   In September 2026, the categories with the highest revenue were Electronics, Personal Care, Home & Kitchen, Snacks & Beverages, and Stationery, with respective revenues of Rs 76,048.80, Rs 52,695.90, Rs 46,760.20, Rs 38,227.25, and Rs 26,568.05.
+  AGENT   The revenue in September 2026 shows Electronics as the highest category with a revenue of Rs 76,048.80, followed by Personal Care, Home & Kitchen, Snacks & Beverages, and Stationery.
 
 -> The second call started from an empty state, so 'And in September?' had no context.
 

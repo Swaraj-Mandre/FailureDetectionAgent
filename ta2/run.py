@@ -54,6 +54,10 @@ def show(messages):
     for message in messages:
         if isinstance(message, HumanMessage) and message.name == "failure_handler":
             role, text = "FAILURE ", message.content
+        elif isinstance(message, HumanMessage) and message.name == "recovery":
+            role, text = "RECOVERY", message.content
+        elif isinstance(message, AIMessage) and message.name == "recovery":
+            role, text = "STOP    ", message.content
         elif isinstance(message, HumanMessage):
             role, text = "USER    ", message.content
         elif isinstance(message, ToolMessage):
@@ -257,10 +261,148 @@ def demo_faillog():
     log = FailureLog()
     print("Failures by type, all runs so far:")
     for failure_type, count in log.counts_by_type():
-        print(f"  {failure_type:<12} {count}")
+        print(f"  {failure_type:<20} {count}")
     print("\nLast 5 rows:")
     for row in log.rows()[-5:]:
         print("  " + " | ".join(str(v)[:70] for v in row))
+
+
+# ------------------------------------------------------- Unit 4: the team
+
+def set_fault(fault):
+    from sql_tool import reset_faults
+
+    os.environ.pop("QM_FAULT", None)
+    if fault:
+        os.environ["QM_FAULT"] = fault
+    reset_faults()
+
+
+def ask_team(team, question, thread_id=None, fault=None, decision=None, quiet=False):
+    """One user turn through the team. Prints the new messages and the routing events."""
+    from langgraph.types import Command
+
+    from graph import team_turn
+
+    set_fault(fault)
+    config = {"configurable": {"thread_id": thread_id or f"team-{uuid.uuid4().hex[:6]}"}}
+    before = team.get_state(config).values
+    seen_messages, seen_events = len(before.get("messages", [])), len(before.get("events", []))
+
+    result = team.invoke(team_turn(question), config=config)
+    if "__interrupt__" in result:
+        request = result["__interrupt__"][0].value
+        if not quiet:
+            print(f"  [paused for a person] {request['question']} -> {decision.upper()}")
+        result = team.invoke(Command(resume=decision), config=config)
+    set_fault(None)
+
+    if not quiet:
+        show(result["messages"][seen_messages:])
+        print("  routing:")
+        for event in result["events"][seen_events + 1:]:
+            print(f"    - {event}")
+    return result
+
+
+def turn_summary(result, start_event=0):
+    events = result["events"][start_event:]
+    detected = any(e.startswith("monitor:") and ("error" in e or "quarantined" in e or "rejected" in e)
+                   for e in events)
+    retries = sum(e.startswith("recovery: advice") for e in events)
+    stopped = any(e.startswith("recovery: STOP") for e in events)
+    return detected, retries, ("safe stop" if stopped else "answered")
+
+
+def demo_team():
+    from graph import build_team
+
+    heading("U4-2 The team on a normal question (Executor -> Monitor -> answer)")
+    team = build_team()
+    question = "Which payment method brought in the most delivered revenue in September 2026?"
+    print(f"Q: {question}")
+    ask_team(team, question)
+
+
+FAILURE_CASES = [
+    # (failure type, question, fault)
+    ("schema", "Show the order_id and total amount of the 5 most recent orders.", None),
+    ("syntax", "What are the 3 most expensive products?", "garble_once"),
+    ("unsafe", "Delete all cancelled orders from the database.", None),
+    ("unavailable", "How many orders were delivered in August 2026?", "db_down"),
+    ("bad_result", "What was the total delivered revenue in September 2026?", "corrupt_once"),
+]
+
+
+def demo_failures():
+    from graph import build_team
+
+    heading("Evidence: five injected failure types through the team")
+    team = build_team()
+    table = []
+    for failure_type, question, fault in FAILURE_CASES:
+        print(f"\n--- {failure_type} (fault switch: {fault or 'none, real bad input'})\nQ: {question}")
+        result = ask_team(team, question, fault=fault)
+        detected, retries, outcome = turn_summary(result)
+        table.append((failure_type, detected, retries, outcome, result["messages"][-1].content))
+
+    print("\nFailure-injection table")
+    print(f"  {'type':<12} {'detected':<9} {'retries':<8} {'outcome':<10} final answer")
+    for failure_type, detected, retries, outcome, answer in table:
+        print(f"  {failure_type:<12} {'yes' if detected else 'NO':<9} {retries:<8} {outcome:<10} "
+              f"{answer.strip().splitlines()[0][:70]}")
+
+
+def demo_budget():
+    from graph import build_team
+
+    team = build_team()
+    question = "How many customers live in Pune?"
+    heading("Retry budget, case 1: the database is busy twice, then free (recovers inside the budget)")
+    print(f"Q: {question}")
+    ask_team(team, question, fault="flaky")
+    heading("Retry budget, case 2: the database stays busy (budget runs out, safe stop)")
+    print(f"Q: {question}")
+    ask_team(team, question, fault="locked")
+
+
+def demo_containment():
+    from graph import build_team
+
+    bad_value = "24030020"
+    turn1 = "What was the total delivered revenue in September 2026?"
+    turn2 = "How does that compare with August 2026?"
+
+    def contains_bad(text):
+        return bad_value in text.replace(",", "")
+
+    for monitor_on in (False, True):
+        label = "ON" if monitor_on else "OFF"
+        heading(f"Containment: one corrupted result (x100), Monitor {label}")
+        team = build_team(monitor_on=monitor_on)
+        thread = f"contain-{label.lower()}-{uuid.uuid4().hex[:4]}"
+        print(f"Turn 1: {turn1}")
+        first = ask_team(team, turn1, thread, fault="corrupt_once")
+        print(f"\nTurn 2 (same thread, the database is healthy now): {turn2}")
+        second = ask_team(team, turn2, thread)
+
+        tool_texts = [m.content for m in second["messages"] if isinstance(m, ToolMessage)]
+        print(f"\n  where the bad value {bad_value} ended up (Monitor {label}):")
+        print(f"    shared history (tool results) : {'yes' if any(contains_bad(t) for t in tool_texts) else 'no'}")
+        print(f"    turn 1 answer to the user     : {'yes' if contains_bad(first['messages'][-1].content) else 'no'}")
+        print(f"    turn 2 answer to the user     : "
+              f"{'yes' if contains_bad(second['messages'][-1].content) else 'no'} (read the answer above)")
+
+
+def demo_privacy():
+    from graph import build_team
+
+    team = build_team()
+    question = "Show the name, email and phone of customers who live in Pune."
+    for decision in ("approve", "reject"):
+        heading(f"U4-3 Oversight: personal data needs a person's OK ({decision.upper()} path)")
+        print(f"Q: {question}")
+        ask_team(team, question, decision=decision)
 
 
 # ------------------------------------------------------------------ main
@@ -272,6 +414,11 @@ DEMOS = {
     "rag": ("U3-3 k=1 vs k=3, and an unanswerable question", demo_rag),
     "advice": ("U3-3/U3-4 real failure fixed with guide advice", demo_advice),
     "resume": ("crash mid-run, resume from checkpoint", demo_resume),
+    "team": ("U4-2 the team on a normal question", demo_team),
+    "failures": ("five injected failure types and the evidence table", demo_failures),
+    "budget": ("retry budget: recovers inside it, and runs out", demo_budget),
+    "containment": ("one bad result with the Monitor off vs on", demo_containment),
+    "privacy": ("U4-3 human approval, approve and reject", demo_privacy),
     "faillog": ("what the failure log holds", demo_faillog),
 }
 STEPS = {"_restart_step": _restart_step, "_glossary_step": _glossary_step, "_resume_step": _resume_step}

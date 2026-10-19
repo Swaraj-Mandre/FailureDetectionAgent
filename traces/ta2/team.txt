@@ -1,0 +1,16 @@
+
+========================================================================
+U4-2 The team on a normal question (Executor -> Monitor -> answer)
+========================================================================
+Q: Which payment method brought in the most delivered revenue in September 2026?
+  USER    Which payment method brought in the most delivered revenue in September 2026?
+  AGENT   calls run_sql({'query': "SELECT payment_method, SUM(revenue) AS total_revenue FROM (SELECT o.payment_method, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%' GROUP BY o.payment_method) GROUP BY payment_method ORDER BY total_revenue DESC LIMIT 1"})
+  TOOL    1 row(s):
+            payment_method | total_revenue
+            UPI | 129190.25
+  AGENT   The UPI payment method brought in the most delivered revenue in September 2026 with a total of Rs. 129,190.25.
+  routing:
+    - executor: calls run_sql
+    - monitor: result looks fine
+    - executor: writes the answer
+    - monitor: answer matches the data (129190)

@@ -55,7 +55,19 @@ python ta1/agent.py "Which city had the most delivered orders in August?"
 
 ## PBA 2: memory, RAG and an agent team
 
-> In progress. Unit 3 layer is done; the Executor, Monitor and Recovery agents come next.
+```
+START -> executor --(tool call)--> tools -> monitor_result --(ok)--------------> executor
+            |                                     |--(personal data)--> privacy_gate -> executor
+            |                                     '--(failure)--> recovery
+            '--(final answer)--> monitor_answer --(ok)--> END
+                                      '--(failure)--> recovery
+
+recovery --(retries left)--> executor
+         '--(not retryable, or budget used up)--> stop -> END
+```
+
+- **Executor** writes SQL and runs it. **Monitor** checks every result and every answer with plain rules, and quarantines impossible numbers. **Recovery** retries with advice from our error guide, or stops safely. Roles in [ta2/ROLES.md](ta2/ROLES.md).
+- **Retry budget:** 3 retries per question, then the team stops and says what went wrong instead of guessing.
 
 Seed the long-term memory once, then run every demo (each one saves its output to `traces/ta2/`):
 
@@ -72,6 +84,11 @@ python ta2/run.py all
 | `rag` | k=1 vs k=3 on our error guide, and an honest "I don't know" |
 | `advice` | a real SQL failure fixed with advice retrieved from the guide, then logged |
 | `resume` | a run that crashes mid-way and continues from its last checkpoint |
+| `team` | a normal question through Executor and Monitor |
+| `failures` | five injected failure types and the evidence table |
+| `budget` | a busy database that clears inside the budget, and one that never does |
+| `containment` | one corrupted result with the Monitor off, then on |
+| `privacy` | personal data paused for a person: approve and reject |
 | `faillog` | what the failure log recorded |
 
 | File | What it is |
@@ -79,7 +96,10 @@ python ta2/run.py all
 | `ta2/config.py` | models, file paths, retry budget |
 | `ta2/memory.py` | SQLite checkpointer, SQLite store (glossary), failure log |
 | `ta2/rag.py` | Chroma index over `ta2/corpus/error_guide.md` (14 sections) |
-| `ta2/single_agent.py` | the PBA 1 agent with memory, guide advice and logging |
+| `ta2/single_agent.py` | the PBA 1 agent with memory, guide advice and logging (Unit 3 milestone) |
+| `ta2/agents.py` | Executor rules, Monitor checks, Recovery decisions, privacy masking |
+| `ta2/graph.py` | the team graph and the retry budget |
+| `traces/ta2/annotated/` | a routing trace explained step by step |
 
 ## Sample data
 

@@ -1,0 +1,75 @@
+
+========================================================================
+Containment: one corrupted result (x100), Monitor OFF
+========================================================================
+Turn 1: What was the total delivered revenue in September 2026?
+  USER    What was the total delivered revenue in September 2026?
+  AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%'"})
+  TOOL    1 row(s):
+            total_revenue
+            24030020.00
+  AGENT   The total delivered revenue in September 2026 was Rs. 24,03,00,20.
+  routing:
+    - executor: calls run_sql
+    - monitor: OFF, result passed on unchecked
+    - executor: writes the answer
+    - monitor: OFF, answer passed on unchecked
+
+Turn 2 (same thread, the database is healthy now): How does that compare with August 2026?
+  USER    How does that compare with August 2026?
+  AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-08%'"})
+  TOOL    1 row(s):
+            total_revenue
+            235077.25
+  AGENT   The total delivered revenue in August 2026 was Rs. 2,350,772.50, which was lower than the September 2026 revenue of Rs. 24,03,00,20.
+  routing:
+    - executor: calls run_sql
+    - monitor: OFF, result passed on unchecked
+    - executor: writes the answer
+    - monitor: OFF, answer passed on unchecked
+
+  where the bad value 24030020 ended up (Monitor OFF):
+    shared history (tool results) : yes
+    turn 1 answer to the user     : yes
+    turn 2 answer to the user     : yes (read the answer above)
+
+========================================================================
+Containment: one corrupted result (x100), Monitor ON
+========================================================================
+Turn 1: What was the total delivered revenue in September 2026?
+  USER    What was the total delivered revenue in September 2026?
+  AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%' GROUP BY p.category)"})
+  TOOL    [Quarantined by the Monitor: this result failed a sanity check and must not be used.]
+  RECOVERY[recovery -> executor] The last result was quarantined. Run the query again. Change the condition in the WHERE clause to filter for a specific date range, ensuring the total revenue does not exceed the shop's all-time gross sales.
+            Try again (2 retries left).
+  AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09-%' GROUP BY p.category)"})
+  TOOL    1 row(s):
+            total_revenue
+            240300.20
+  AGENT   The total delivered revenue in September 2026 was Rs. 240,300.20.
+  routing:
+    - executor: calls run_sql
+    - monitor: silent bad result quarantined (total_revenue = 24030020.00 is more than the shop's all-time gross sales (Rs 1,299,209))
+    - recovery: advice from guide sections ['Suspicious numbers (silent failures)', 'Calculating revenue', 'Joining the tables'], 2 retries left
+    - executor: calls run_sql
+    - monitor: result looks fine
+    - executor: writes the answer
+    - monitor: answer matches the data (240300)
+
+Turn 2 (same thread, the database is healthy now): How does that compare with August 2026?
+  USER    How does that compare with August 2026?
+  AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-08-%' GROUP BY p.category)"})
+  TOOL    1 row(s):
+            total_revenue
+            235077.25
+  AGENT   The total delivered revenue in August 2026 was Rs. 235,077.25, which is slightly lower than the Rs. 240,300.20 for September 2026.
+  routing:
+    - executor: calls run_sql
+    - monitor: result looks fine
+    - executor: writes the answer
+    - monitor: answer matches the data (235077)
+
+  where the bad value 24030020 ended up (Monitor ON):
+    shared history (tool results) : no
+    turn 1 answer to the user     : no
+    turn 2 answer to the user     : no (read the answer above)

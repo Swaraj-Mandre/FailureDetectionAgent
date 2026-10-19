@@ -3,11 +3,16 @@
 Only the database path now comes from config.py. Every failure still starts
 with "Error:".
 
-Fault switch (identical to PBA 1):
-    QM_FAULT=db_down   pretend the database is unreachable
-    QM_FAULT=locked    pretend the database is busy (normally worth a retry), and stays busy
-    QM_FAULT=corrupt   every number comes back 100 times too big (a paise vs rupees
-                       bug), with no error. Only a sanity check can catch it.
+Fault switch (the first three are identical to PBA 1):
+    QM_FAULT=db_down       pretend the database is unreachable
+    QM_FAULT=locked        pretend the database is busy (normally worth a retry), and stays busy
+    QM_FAULT=corrupt       every number comes back 100 times too big (a paise vs rupees
+                           bug), with no error. Only a sanity check can catch it.
+Two short-lived faults, new in PBA 2, so a recovery can actually succeed:
+    QM_FAULT=flaky         busy for the first 2 queries, then works
+    QM_FAULT=corrupt_once  only the first result is 100 times too big, later ones are fine
+    QM_FAULT=garble_once   the first query arrives garbled (a stray ')' at the end)
+Call reset_faults() before each test so the counters start from zero.
 """
 import os
 import re
@@ -16,7 +21,9 @@ import sqlite3
 from langchain_core.tools import tool
 
 from config import SHOP_DB as DB_PATH
+
 MAX_ROWS = 50
+_calls = {"queries": 0}   # how many queries reached execute() since the last reset
 
 # Any of these words means the query would change the database or its settings.
 BLOCKED_WORDS = (
@@ -60,11 +67,19 @@ def corrupt(rows):
     return [tuple(v * 100 if isinstance(v, (int, float)) else v for v in row) for row in rows]
 
 
+def reset_faults():
+    _calls["queries"] = 0
+
+
 def execute(query):
     """Run an already-checked query on a read-only connection."""
-    if os.environ.get("QM_FAULT") == "db_down":
+    fault = os.environ.get("QM_FAULT")
+    _calls["queries"] += 1
+    if fault == "garble_once" and _calls["queries"] == 1:
+        query += " )"
+    if fault == "db_down":
         return "Error: could not connect to the database (connection refused)."
-    if os.environ.get("QM_FAULT") == "locked":
+    if fault == "locked" or (fault == "flaky" and _calls["queries"] <= 2):
         return "Error: database is locked (another program is writing to it)."
 
     if not DB_PATH.exists():
@@ -80,7 +95,7 @@ def execute(query):
 
     if not rows:
         return "The query ran fine but returned no rows."
-    if os.environ.get("QM_FAULT") == "corrupt":
+    if fault == "corrupt" or (fault == "corrupt_once" and _calls["queries"] == 1):
         rows = corrupt(rows)
     return format_rows(columns, rows)
 

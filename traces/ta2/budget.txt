@@ -1,0 +1,64 @@
+
+========================================================================
+Retry budget, case 1: the database is busy twice, then free (recovers inside the budget)
+========================================================================
+Q: How many customers live in Pune?
+  USER    How many customers live in Pune?
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) FROM customers WHERE city = 'Pune'"})
+  TOOL    Error: database is locked (another program is writing to it).
+  RECOVERY[recovery -> executor] Try the query again in a few minutes as the database might be locked by another program.
+            Try again (2 retries left).
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) FROM customers WHERE city = 'Pune'"})
+  TOOL    Error: database is locked (another program is writing to it).
+  RECOVERY[recovery -> executor] Try the query again in a few minutes as the database might be locked by another program.
+            Try again (1 retry left).
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) FROM customers WHERE city = 'Pune'"})
+  TOOL    1 row(s):
+            COUNT(*)
+            5
+  AGENT   There are 5 customers living in Pune.
+  routing:
+    - executor: calls run_sql
+    - monitor: tool error, type 'busy'
+    - recovery: advice from guide sections ['Database locked or busy', 'Blocked write query (read-only)', 'Database unavailable'], 2 retries left
+    - executor: calls run_sql
+    - monitor: tool error, type 'busy'
+    - recovery: advice from guide sections ['Database locked or busy', 'Blocked write query (read-only)', 'Database unavailable'], 1 retry left
+    - executor: calls run_sql
+    - monitor: result looks fine
+    - executor: writes the answer
+    - monitor: answer matches the data (5)
+
+========================================================================
+Retry budget, case 2: the database stays busy (budget runs out, safe stop)
+========================================================================
+Q: How many customers live in Pune?
+  USER    How many customers live in Pune?
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) FROM customers WHERE city = 'Pune'"})
+  TOOL    Error: database is locked (another program is writing to it).
+  RECOVERY[recovery -> executor] Try the query again in a few minutes as the database might be locked by another program.
+            Try again (2 retries left).
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) FROM customers WHERE city = 'Pune'"})
+  TOOL    Error: database is locked (another program is writing to it).
+  RECOVERY[recovery -> executor] Try the query again in a few minutes as the database might be locked by another program.
+            Try again (1 retry left).
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) FROM customers WHERE city = 'Pune'"})
+  TOOL    Error: database is locked (another program is writing to it).
+  RECOVERY[recovery -> executor] Try the query again in a few minutes as the database might be locked by another program.
+            Try again (0 retries left).
+  AGENT   It seems the database is locked and I am unable to fetch the count of customers living in Pune. Please try again later.
+  STOP    I couldn't get a reliable answer, even after 3 retries. The last problem was: Error: database is locked (another program is writing to it). I've logged it for a person to check instead of guessing.
+  routing:
+    - executor: calls run_sql
+    - monitor: tool error, type 'busy'
+    - recovery: advice from guide sections ['Database locked or busy', 'Blocked write query (read-only)', 'Database unavailable'], 2 retries left
+    - executor: calls run_sql
+    - monitor: tool error, type 'busy'
+    - recovery: advice from guide sections ['Database locked or busy', 'Blocked write query (read-only)', 'Database unavailable'], 1 retry left
+    - executor: calls run_sql
+    - monitor: tool error, type 'busy'
+    - recovery: advice from guide sections ['Database locked or busy', 'Blocked write query (read-only)', 'Database unavailable'], 0 retries left
+    - executor: writes the answer
+    - monitor: answer rejected, it is not backed by a valid result
+    - recovery: STOP (retry budget used up)
+    - stop: safe final answer written, no guessing
