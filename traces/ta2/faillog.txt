@@ -1,0 +1,9 @@
+
+========================================================================
+Topic: the failure log (failure_log.db)
+========================================================================
+Failures by type, all runs so far:
+  schema       1
+
+Last 5 rows:
+  2026-10-19T16:16:58 | advice-ff3e | single_agent | schema | SELECT order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct | Error: ambiguous column name: order_id. Check the table and column nam | retry with advice from: Ambiguous column name, Unknown column (no such | 2

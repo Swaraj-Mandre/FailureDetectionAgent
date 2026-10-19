@@ -53,6 +53,34 @@ python ta1/agent.py "Which city had the most delivered orders in August?"
 | `ta1/REFINEMENT_NOTES.md` | what broke in the slide version and what we changed |
 | `traces/ta1/annotated/` | two failure-and-recovery traces, explained step by step |
 
+## PBA 2: memory, RAG and an agent team
+
+> In progress. Unit 3 layer is done; the Executor, Monitor and Recovery agents come next.
+
+Seed the long-term memory once, then run every demo (each one saves its output to `traces/ta2/`):
+
+```bash
+python ta2/seed_store.py
+python ta2/run.py all
+```
+
+| Demo | Shows |
+|---|---|
+| `amnesia` | the same follow-up question without and with a checkpointer |
+| `restart` | a conversation that continues in a brand-new process |
+| `glossary` | a business word saved in one thread and used in another, after a restart |
+| `rag` | k=1 vs k=3 on our error guide, and an honest "I don't know" |
+| `advice` | a real SQL failure fixed with advice retrieved from the guide, then logged |
+| `resume` | a run that crashes mid-way and continues from its last checkpoint |
+| `faillog` | what the failure log recorded |
+
+| File | What it is |
+|---|---|
+| `ta2/config.py` | models, file paths, retry budget |
+| `ta2/memory.py` | SQLite checkpointer, SQLite store (glossary), failure log |
+| `ta2/rag.py` | Chroma index over `ta2/corpus/error_guide.md` (14 sections) |
+| `ta2/single_agent.py` | the PBA 1 agent with memory, guide advice and logging |
+
 ## Sample data
 
 `data/shop.db` is a made-up retail shop (Sahyadri Stores): 40 customers, 25 products, 300 orders from April to September 2026. See [data/schema.md](data/schema.md).

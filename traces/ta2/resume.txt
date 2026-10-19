@@ -1,0 +1,17 @@
+
+========================================================================
+Topic: resume after a failure (checkpointer)
+========================================================================
+Process 1 runs with a crash switch: it dies right after the SQL result is saved.
+  Q: What was the total delivered revenue in August 2026?
+  AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-08%' GROUP BY p.category)"})
+  TOOL    1 row(s):
+            total_revenue
+            235077.25
+  saved checkpoint: next node to run = ('agent',)
+  [process exited with code 1: RuntimeError: Simulated crash: the process died after the tool ran.]
+
+Process 2 starts fresh, finds the saved checkpoint and continues from it.
+  found 3 saved messages, next node = ('agent',)
+  resuming with invoke(None) (no new question, no SQL re-run):
+  AGENT   The total delivered revenue in August 2026 was Rs. 235,077.25.

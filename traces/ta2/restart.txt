@@ -1,0 +1,23 @@
+
+========================================================================
+U3-1 + persistence: the conversation survives a real restart
+========================================================================
+Process 1 asks a question, then exits.
+  messages remembered at start: 0
+  Q: How many customers live in Nashik?
+  USER    How many customers live in Nashik?
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) AS customer_count FROM customers WHERE city = 'Nashik'"})
+  TOOL    1 row(s):
+            customer_count
+            7
+  AGENT   There are 7 customers living in Nashik.
+
+Process 2 is a new Python process with the same thread_id.
+  messages remembered at start: 4
+  Q: And how many in Mumbai?
+  USER    And how many in Mumbai?
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) AS customer_count FROM customers WHERE city = 'Mumbai'"})
+  TOOL    1 row(s):
+            customer_count
+            8
+  AGENT   There are 8 customers living in Mumbai.

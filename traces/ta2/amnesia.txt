@@ -1,0 +1,44 @@
+
+========================================================================
+U3-1 Short-term memory: WITHOUT a checkpointer (two separate calls)
+========================================================================
+Q1: How many orders were delivered in August 2026?
+  USER    How many orders were delivered in August 2026?
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) AS num_orders FROM orders WHERE status = 'delivered' AND order_date LIKE '2026-08%'"})
+  TOOL    1 row(s):
+            num_orders
+            55
+  AGENT   In August 2026, there were 55 orders delivered.
+Q2: And in September?
+  USER    And in September?
+  AGENT   calls run_sql({'query': "SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%' GROUP BY p.category ORDER BY revenue DESC"})
+  TOOL    5 row(s):
+            category | revenue
+            Electronics | 76048.80
+            Personal Care | 52695.90
+            Home & Kitchen | 46760.20
+            Snacks & Beverages | 38227.25
+            Stationery | 26568.05
+  AGENT   In September 2026, the categories with the highest revenue were Electronics, Personal Care, Home & Kitchen, Snacks & Beverages, and Stationery, with respective revenues of Rs 76,048.80, Rs 52,695.90, Rs 46,760.20, Rs 38,227.25, and Rs 26,568.05.
+
+-> The second call started from an empty state, so 'And in September?' had no context.
+
+========================================================================
+U3-1 Short-term memory: WITH a SQLite checkpointer and one thread_id
+========================================================================
+Q1: How many orders were delivered in August 2026?
+  USER    How many orders were delivered in August 2026?
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) AS num_orders FROM orders WHERE status = 'delivered' AND order_date LIKE '2026-08%'"})
+  TOOL    1 row(s):
+            num_orders
+            55
+  AGENT   In August 2026, there were 55 orders delivered.
+Q2: And in September?
+  USER    And in September?
+  AGENT   calls run_sql({'query': "SELECT COUNT(*) AS num_orders FROM orders WHERE status = 'delivered' AND order_date LIKE '2026-09%'"})
+  TOOL    1 row(s):
+            num_orders
+            63
+  AGENT   In September 2026, there were 63 orders delivered.
+
+-> Same thread_id, so turn 2 saw turn 1. The thread now holds 8 messages in checkpoints.db.

@@ -1,0 +1,26 @@
+
+========================================================================
+U3-3 RAG over our error guide (14 sections in Chroma)
+========================================================================
+
+Q: What does an ambiguous column name error mean, and what should I do when the database is locked?
+  [k=1] sections: ['Database locked or busy']
+  A: I don't know, the guide does not cover that.
+  [k=3] sections: ['Database locked or busy', 'Ambiguous column name', 'Unknown column (no such column)']
+  A: Ambiguous column name error means that SQLite found the same column name in two joined tables and does not know which one one is meant. For example, in a database, order_id appears in orders and order_items, product_id in products and order_items, and customer_id in customers and orders. To fix this, give every table a short alias (o for orders, oi for order_items, p for products, c for customers) and prefix every column with it, including inside GROUP BY and ORDER BY, for example o.order_id.
+     
+     If the database is locked, it means another program is writing to the database for a moment. Unlike a connection failure, this usually clears by itself, so sending the same query again is reasonable. If it is still locked after the retry budget is used up, stop and tell the user to try again in a few minutes.
+
+Q: How do I calculate revenue, and what should I do if a query returns no rows?
+  [k=1] sections: ['Calculating revenue']
+  A: To calculate revenue, use the formula provided in the guide: Revenue of one order line is `oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)`. Always join `order_items` to `products` to get the price. Count only orders with `o.status = 'delivered'` unless the question specifies otherwise. Divide by `100.0`, not `100`, so the discount is not rounded away. If someone has saved their own meaning of revenue in the glossary, follow that instead.
+     
+     If a query returns no rows, the guide does not cover that.
+  [k=3] sections: ['Calculating revenue', 'Empty result (no rows)', 'Unknown column (no such column)']
+  A: To calculate revenue, use the formula provided in the Calculating revenue guide section. Revenue of one order line is calculated as `oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)`. Always join `order_items` to `products` to get the price. Count only orders with `o.status = 'delivered'` unless the question asks for cancelled or pending orders. Divide by 100.0, not 100, so the discount is not rounded away.
+     
+     If a query returns no rows, it falls under the Empty result (no rows) guide section. The common causes include incorrect status values, city names not starting with a capital letter, or dates outside the specified range. To fix this, you should loosen one filter at a time until rows come back, then check which filter was wrong.
+
+Q: How do I connect QueryMend to a MySQL server?
+  [unanswerable, k=3] sections: ['Blocked write query (read-only)', 'Joining the tables', 'Database unavailable']
+  A: I don't know, the guide does not cover that.

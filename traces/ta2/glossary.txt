@@ -1,0 +1,23 @@
+
+========================================================================
+U3-2 Long-term memory: a business word saved Monday, used Wednesday after a restart
+========================================================================
+Process 1, thread 'monday': the owner defines a word.
+  USER    Please remember this: a premium product means a product with unit price above Rs 1500.
+  AGENT   calls remember_term({'term': 'premium product', 'meaning': 'a product with unit price above Rs 1500'})
+  TOOL    Saved: 'premium product' means a product with unit price above Rs 1500
+  AGENT   I have remembered that a premium product means a product with a unit price above Rs 1500.
+
+Process 2, thread 'wednesday' (new process, new thread): the owner uses the word.
+  USER    Which of our products are premium products?
+  AGENT   calls run_sql({'query': 'SELECT product_id, name FROM products WHERE unit_price > 1500'})
+  TOOL    3 row(s):
+            product_id | name
+            3 | Bluetooth Earbuds
+            8 | Pressure Cooker 3L
+            19 | Electric Trimmer
+  AGENT   The premium products are those with a unit price above Rs 1500, and they are Bluetooth Earbuds, Pressure Cooker 3L, and Electric Trimmer.
+
+Direct look inside store.db (no model involved):
+  owner_pune: {'premium product': 'a product with unit price above Rs 1500', 'revenue': 'delivered orders only, after discount', 'festive season': 'August and September 2026'}
+  owner_mumbai: {'revenue': 'delivered and pending orders, after discount'}
