@@ -1,0 +1,27 @@
+Case     : retry_cap
+Purpose  : Injected fault: the database stays busy, so every retry fails.
+Question : How many customers live in Pune?
+Fault    : locked
+Version  : v2 refined
+----------------------------------------------------------------------
+[01] USER    How many customers live in Pune?
+[02] AGENT   calls run_sql({'query': "SELECT COUNT(DISTINCT customer_id) AS customer_count FROM customers WHERE city = 'Pune'"})
+[03] TOOL    Error: database is locked (another program is writing to it).
+[04] FAILURE The tool failed with: Error: database is locked (another program is writing to it).
+              Hint: The database was busy for a moment. You may send the same query again.
+              Write a corrected query and call run_sql again (2 tries left).
+[05] AGENT   calls run_sql({'query': "SELECT COUNT(DISTINCT customer_id) AS customer_count FROM customers WHERE city = 'Pune'"})
+[06] TOOL    Error: database is locked (another program is writing to it).
+[07] FAILURE The tool failed with: Error: database is locked (another program is writing to it).
+              Hint: The database was busy for a moment. You may send the same query again.
+              Write a corrected query and call run_sql again (1 try left).
+[08] AGENT   calls run_sql({'query': "SELECT COUNT(DISTINCT customer_id) AS customer_count FROM customers WHERE city = 'Pune'"})
+[09] TOOL    Error: database is locked (another program is writing to it).
+[10] FAILURE The tool failed 3 times. Last error: Error: database is locked (another program is writing to it).
+              Stop calling the tool. Tell the user you could not get a reliable answer, and say in one line what kept failing.
+[11] AGENT   The database was locked, preventing the query from executing successfully.
+----------------------------------------------------------------------
+Outcome          : finished
+Model calls      : 4
+Failure notices  : 3
+Time             : 1.5 s

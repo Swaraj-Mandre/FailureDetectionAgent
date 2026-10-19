@@ -1,17 +1,30 @@
 Case     : schema_error
-Purpose  : Bad input 1: tempts the model to use an 'amount' column that does not exist.
+Purpose  : Bad input 1: a column name problem (order_id is in two tables).
 Question : Show the order_id and total amount of the 5 most recent orders.
 Fault    : none
+Version  : v1 slide version
 ----------------------------------------------------------------------
 [01] USER    Show the order_id and total amount of the 5 most recent orders.
-[02] AGENT   calls run_sql({'query': "SELECT order_id, SUM(quantity * unit_price * (1 - discount_pct / 100.0)) as total_amount FROM orders JOIN order_items ON orders.order_id = order_items.order_id JOIN products ON order_items.product_id = products.product_id WHERE orders.status = 'delivered' AND order_date >= '2026-04-01' AND order_date <= '2026-09-30' ORDER BY order_id DESC LIMIT 5"})
+[02] AGENT   calls run_sql({'query': "SELECT order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date >= '2026-04-01' AND o.order_date < '2026-10-01' GROUP BY order_id ORDER BY order_id DESC LIMIT 5"})
 [03] TOOL    Error: ambiguous column name: order_id. Check the table and column names against the schema.
-[04] USER    That tool call failed. Try a different approach, or explain why.
-[05] AGENT   The previous query failed because there is an ambiguity with the column name 'order_id'. This could be due to a column with the same name in different tables. Let's adjust the query to use a different column name for the order_id in the orders table, such as order_id_orders, to avoid the ambiguity. Here is the corrected SQL query:
+[04] FAILURE That tool call failed. Try a different approach, or explain why.
+[05] AGENT   The previous query failed because there is an ambiguity with the column name `order_id`. This could be due to a column with the same name in different tables. Let's adjust the query to use a different alias for the `order_id` in the `orders` table to avoid the ambiguity. 
               
-              SELECT order_id_orders, SUM(quantity * unit_price * (1 - discount_pct / 100.0)) as total_amount FROM orders JOIN order_items ON orders.order_id_orders = order_items.order_id JOIN products ON order_items.product_id = products.product_id WHERE orders.status = 'delivered' AND order_date >= '2026-04-01' AND order_date <= '2026-09-30' ORDER BY order_id_orders DESC LIMIT 5
+              Here is the corrected query:
+              ```sql
+              SELECT oi.order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount
+              FROM order_items oi
+              JOIN orders o ON o.order_id = oi.order_id
+              JOIN products p ON p.product_id = oi.product_id
+              WHERE o.status = 'delivered' AND o.order_date >= '2026-04-01' AND o.order_date < '2026-10-01'
+              GROUP BY oi.order_id
+              ORDER BY oi.order_id DESC
+              LIMIT 5;
+              ```
+              
+              I will run this corrected query to get the 5 most recent delivered orders and their total amounts.
 ----------------------------------------------------------------------
 Outcome          : finished
 Model calls      : 2
 Failure notices  : 1
-Time             : 3.0 s
+Time             : 3.4 s

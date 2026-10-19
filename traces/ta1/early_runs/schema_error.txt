@@ -1,0 +1,17 @@
+Case     : schema_error
+Purpose  : Bad input 1: tempts the model to use an 'amount' column that does not exist.
+Question : Show the order_id and total amount of the 5 most recent orders.
+Fault    : none
+----------------------------------------------------------------------
+[01] USER    Show the order_id and total amount of the 5 most recent orders.
+[02] AGENT   calls run_sql({'query': "SELECT order_id, SUM(quantity * unit_price * (1 - discount_pct / 100.0)) as total_amount FROM orders JOIN order_items ON orders.order_id = order_items.order_id JOIN products ON order_items.product_id = products.product_id WHERE orders.status = 'delivered' AND order_date >= '2026-04-01' AND order_date <= '2026-09-30' ORDER BY order_id DESC LIMIT 5"})
+[03] TOOL    Error: ambiguous column name: order_id. Check the table and column names against the schema.
+[04] USER    That tool call failed. Try a different approach, or explain why.
+[05] AGENT   The previous query failed because there is an ambiguity with the column name 'order_id'. This could be due to a column with the same name in different tables. Let's adjust the query to use a different column name for the order_id in the orders table, such as order_id_orders, to avoid the ambiguity. Here is the corrected SQL query:
+              
+              SELECT order_id_orders, SUM(quantity * unit_price * (1 - discount_pct / 100.0)) as total_amount FROM orders JOIN order_items ON orders.order_id_orders = order_items.order_id JOIN products ON order_items.product_id = products.product_id WHERE orders.status = 'delivered' AND order_date >= '2026-04-01' AND order_date <= '2026-09-30' ORDER BY order_id_orders DESC LIMIT 5
+----------------------------------------------------------------------
+Outcome          : finished
+Model calls      : 2
+Failure notices  : 1
+Time             : 3.0 s

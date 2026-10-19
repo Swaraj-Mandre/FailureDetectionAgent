@@ -143,6 +143,15 @@ def make_orders_and_items(rng):
             max_qty = 6 if category == "Snacks & Beverages" else 3
             discount = rng.choice([0, 0, 0, 0, 0, 0, 5, 10, 15])
             items.append((order_id, product_id, rng.randint(1, max_qty), discount))
+    return renumber_by_date(orders, items)
+
+
+def renumber_by_date(orders, items):
+    """Real shops hand out order numbers in time order, so a higher order_id means a newer order."""
+    by_date = sorted(orders, key=lambda o: (o[2], o[0]))
+    new_id = {old[0]: i for i, old in enumerate(by_date, start=1)}
+    orders = [(new_id[o[0]],) + o[1:] for o in by_date]
+    items = sorted(((new_id[i[0]],) + i[1:] for i in items), key=lambda i: (i[0], i[1]))
     return orders, items
 
 

@@ -6,7 +6,9 @@ starts with "Error:" so the graph can notice it.
 
 Fault switch (for repeatable tests, PBA 2 reuses it):
     QM_FAULT=db_down   pretend the database is unreachable
-    QM_FAULT=corrupt   return rows with every number flipped negative, no error
+    QM_FAULT=locked    pretend the database is busy (normally worth a retry), and stays busy
+    QM_FAULT=corrupt   every number comes back 100 times too big (a paise vs rupees
+                       bug), with no error. Only a sanity check can catch it.
 """
 import os
 import re
@@ -57,13 +59,15 @@ def format_rows(columns, rows):
 
 
 def corrupt(rows):
-    return [tuple(-v if isinstance(v, (int, float)) else v for v in row) for row in rows]
+    return [tuple(v * 100 if isinstance(v, (int, float)) else v for v in row) for row in rows]
 
 
 def execute(query):
     """Run an already-checked query on a read-only connection."""
     if os.environ.get("QM_FAULT") == "db_down":
         return "Error: could not connect to the database (connection refused)."
+    if os.environ.get("QM_FAULT") == "locked":
+        return "Error: database is locked (another program is writing to it)."
 
     if not DB_PATH.exists():
         return "Error: shop.db not found. Run python data/make_shop_db.py first."

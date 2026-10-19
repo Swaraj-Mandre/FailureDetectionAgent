@@ -23,6 +23,8 @@ Categories: Electronics, Home & Kitchen, Stationery, Personal Care, Snacks & Bev
 ## orders
 `order_id`, `customer_id`, `order_date` (YYYY-MM-DD), `status`, `payment_method`
 
+- `order_id` goes up with time, so a higher order_id is a newer order.
+
 - `status` is one of `delivered`, `cancelled`, `pending`.
 - `payment_method` is one of `UPI`, `Card`, `Cash`.
 

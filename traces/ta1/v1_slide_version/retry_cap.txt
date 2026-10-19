@@ -1,0 +1,22 @@
+Case     : retry_cap
+Purpose  : Injected fault: the database stays busy, so every retry fails.
+Question : How many customers live in Pune?
+Fault    : locked
+Version  : v1 slide version
+----------------------------------------------------------------------
+[01] USER    How many customers live in Pune?
+[02] AGENT   calls run_sql({'query': "SELECT COUNT(DISTINCT customer_id) AS customer_count FROM customers WHERE city = 'Pune'"})
+[03] TOOL    Error: database is locked (another program is writing to it).
+[04] FAILURE That tool call failed. Try a different approach, or explain why.
+[05] AGENT   calls run_sql({'query': "SELECT COUNT(DISTINCT customer_id) AS customer_count FROM customers WHERE city = 'Pune'"})
+[06] TOOL    Error: database is locked (another program is writing to it).
+[07] FAILURE That tool call failed. Try a different approach, or explain why.
+[08] AGENT   calls run_sql({'query': "SELECT COUNT(DISTINCT customer_id) AS customer_count FROM customers WHERE city = 'Pune'"})
+[09] TOOL    Error: database is locked (another program is writing to it).
+[10] FAILURE That tool call failed. Try a different approach, or explain why.
+[11] AGENT   Since the previous attempts to run the SQL query failed due to the database being locked, let's proceed with a direct SQL query to count the number of customers living in Pune. We'll filter the customers table by the city 'Pune' and count the distinct customer IDs.
+----------------------------------------------------------------------
+Outcome          : finished
+Model calls      : 4
+Failure notices  : 3
+Time             : 2.8 s

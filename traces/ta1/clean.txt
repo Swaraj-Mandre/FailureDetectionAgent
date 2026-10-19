@@ -1,0 +1,19 @@
+Case     : clean
+Purpose  : Normal question, no failure expected.
+Question : Which 3 products earned the most revenue in September 2026?
+Fault    : none
+Version  : v2 refined
+----------------------------------------------------------------------
+[01] USER    Which 3 products earned the most revenue in September 2026?
+[02] AGENT   calls run_sql({'query': "SELECT p.name, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%' GROUP BY p.name ORDER BY revenue DESC LIMIT 3"})
+[03] TOOL    3 row(s):
+              name | revenue
+              Electric Trimmer | 38768.45
+              Bluetooth Earbuds | 35985.60
+              Pressure Cooker 3L | 19681.05
+[04] AGENT   The top 3 products that earned the most revenue in September 2026 are: Electric Trimmer with a revenue of Rs 38,768.45, Bluetooth Earbuds with a revenue of Rs 35,985.60, and Pressure Cooker 3L with a revenue of Rs 19,681.05.
+----------------------------------------------------------------------
+Outcome          : finished
+Model calls      : 2
+Failure notices  : 0
+Time             : 2.0 s

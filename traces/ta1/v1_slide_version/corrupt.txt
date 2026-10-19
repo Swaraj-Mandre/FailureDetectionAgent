@@ -2,15 +2,16 @@ Case     : corrupt
 Purpose  : Injected fault: the tool returns wrong numbers without any error.
 Question : What was the total delivered revenue in September 2026?
 Fault    : corrupt
+Version  : v1 slide version
 ----------------------------------------------------------------------
 [01] USER    What was the total delivered revenue in September 2026?
-[02] AGENT   calls run_sql({'query': "SELECT SUM(quantity * unit_price * (1 - discount_pct / 100.0)) AS total_revenue FROM orders o JOIN order_items oi ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '%2026-09-%'"})
+[02] AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%'"})
 [03] TOOL    1 row(s):
               total_revenue
-              -240300.20
-[04] AGENT   The total delivered revenue in September 2026 was $-240300.20. This negative value might indicate a financial loss or a special pricing scenario.
+              24030020.00
+[04] AGENT   The total delivered revenue in September 2026 was Rs. 24,03,00,20.00.
 ----------------------------------------------------------------------
 Outcome          : finished
 Model calls      : 2
 Failure notices  : 0
-Time             : 1.4 s
+Time             : 1.3 s

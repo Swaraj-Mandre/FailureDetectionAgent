@@ -1,0 +1,22 @@
+Case     : corrupt
+Purpose  : Injected fault: the tool returns wrong numbers without any error.
+Question : What was the total delivered revenue in September 2026?
+Fault    : corrupt
+Version  : v2 refined
+----------------------------------------------------------------------
+[01] USER    What was the total delivered revenue in September 2026?
+[02] AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%';)"})
+[03] TOOL    Error: only one SQL statement is allowed at a time.
+[04] FAILURE The tool failed with: Error: only one SQL statement is allowed at a time.
+              Hint: This is SQLite. There is no YEAR() or MONTH(). For a month use order_date LIKE '2026-09%'. strftime() returns text, so compare it with text like '09', not a number. Send one SELECT only.
+              Write a corrected query and call run_sql again (2 tries left).
+[05] AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%';"})
+[06] TOOL    1 row(s):
+              total_revenue
+              24030020.00
+[07] AGENT   The total delivered revenue in September 2026 was Rs. 24,03,00,20.00.
+----------------------------------------------------------------------
+Outcome          : finished
+Model calls      : 3
+Failure notices  : 1
+Time             : 2.4 s

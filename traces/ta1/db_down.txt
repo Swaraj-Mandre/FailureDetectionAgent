@@ -1,0 +1,17 @@
+Case     : db_down
+Purpose  : Injected fault: the database is unreachable.
+Question : How many orders were delivered in August 2026?
+Fault    : db_down
+Version  : v2 refined
+----------------------------------------------------------------------
+[01] USER    How many orders were delivered in August 2026?
+[02] AGENT   calls run_sql({'query': "SELECT COUNT(*) AS num_orders FROM orders WHERE status = 'delivered' AND order_date LIKE '2026-08%'"})
+[03] TOOL    Error: could not connect to the database (connection refused).
+[04] FAILURE The tool refused: Error: could not connect to the database (connection refused).
+              Do not call the tool again. Tell the user the database cannot be reached right now and they should try again later. Do not guess any numbers.
+[05] AGENT   The database cannot be reached right now. Please try again later.
+----------------------------------------------------------------------
+Outcome          : finished
+Model calls      : 2
+Failure notices  : 1
+Time             : 0.7 s

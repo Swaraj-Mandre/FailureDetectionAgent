@@ -11,12 +11,10 @@ Agentic AI course project, MIT School of Computing, Pune. Group 17, AIA_05.
 | PBA 1 | One agent, one SQL tool, detects and recovers from its own tool failures | `ta1/` |
 | PBA 2 | Executor, Monitor and Recovery agents with memory, RAG and a retry budget | `ta2/` |
 
-> Work in progress. Setup and run commands are added as each part is finished.
-
 ## Requirements
 
 - Python 3.12
-- [Ollama](https://ollama.com) with two models pulled: `qwen2.5:3b` and `nomic-embed-text`
+- [Ollama](https://ollama.com) running, with two models pulled: `qwen2.5:3b` and `nomic-embed-text`
 
 ## Setup
 
@@ -24,6 +22,36 @@ Agentic AI course project, MIT School of Computing, Pune. Group 17, AIA_05.
 pip install -r requirements.txt
 python data/make_shop_db.py
 ```
+
+## PBA 1: an agent that catches its own tool failures
+
+One agent, one tool (`run_sql`), and a hand-built LangGraph loop that notices when the tool fails and decides what to do next.
+
+```
+START -> agent --(tool call?)--> tools --(route_after_tools)--> agent
+           |                                  |
+           '--(no tool call)--> END           '--> handle_failure --> agent
+```
+
+Run every test case (traces are saved to `traces/ta1/`):
+
+```bash
+python ta1/run_cases.py
+```
+
+Ask your own question:
+
+```bash
+python ta1/agent.py "Which city had the most delivered orders in August?"
+```
+
+| File | What it is |
+|---|---|
+| `ta1/sql_tool.py` | the tool: read-only, one SELECT at a time, clear error messages |
+| `ta1/agent.py` | the refined agent |
+| `ta1/agent_v1_slide.py` | the slide version, kept for comparison (`run_cases.py --v1`) |
+| `ta1/REFINEMENT_NOTES.md` | what broke in the slide version and what we changed |
+| `traces/ta1/annotated/` | two failure-and-recovery traces, explained step by step |
 
 ## Sample data
 
