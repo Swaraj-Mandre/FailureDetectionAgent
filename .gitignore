@@ -17,3 +17,6 @@ chroma_db/
 .DS_Store
 Thumbs.db
 edge_profile_*/
+
+# Office lock files
+~$*
