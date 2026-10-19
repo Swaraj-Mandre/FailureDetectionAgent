@@ -100,7 +100,15 @@ python ta2/run.py all
 | `ta2/agents.py` | Executor rules, Monitor checks, Recovery decisions, privacy masking |
 | `ta2/graph.py` | the team graph and the retry budget |
 | `ta2/evaluate.py` | the evaluation: TA1 vs TA2, failure injection, containment. Results and analysis in [ta2/EVALUATION.md](ta2/EVALUATION.md) |
+| `ta2/app.py` | a web page for the live demo: chat, a Monitor switch, failure injection, approve or reject for personal data |
 | `traces/ta2/annotated/` | a routing trace explained step by step |
+
+For the live demo, the same team runs behind a small web page. It needs Streamlit, only for this page:
+
+```bash
+pip install streamlit
+streamlit run ta2/app.py
+```
 
 ## Report and slides
 
