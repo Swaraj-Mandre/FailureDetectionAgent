@@ -11,7 +11,7 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 
-from config import CHAT_MODEL, CHROMA_DIR, CORPUS_FILE, EMBED_MODEL, RAG_K
+from config import CHAT_MODEL, CHROMA_DIR, CORPUS_FILE, EMBED_MODEL, MODEL_RETRIES, RAG_K
 
 COLLECTION = "error_guide"
 HASH_FILE = CHROMA_DIR / "corpus.sha1"
@@ -79,7 +79,7 @@ def get_vectorstore(rebuild=False):
 def get_llm():
     global _llm
     if _llm is None:
-        _llm = ChatOllama(model=CHAT_MODEL, temperature=0)
+        _llm = ChatOllama(model=CHAT_MODEL, temperature=0).with_retry(stop_after_attempt=MODEL_RETRIES)
     return _llm
 
 

@@ -40,9 +40,12 @@ def load_limits():
     with sqlite3.connect(f"file:{SHOP_DB}?mode=ro", uri=True) as conn:
         gross = conn.execute("SELECT SUM(oi.quantity * p.unit_price) FROM order_items oi "
                              "JOIN products p ON p.product_id = oi.product_id").fetchone()[0]
+        largest_order = conn.execute("SELECT MAX(total) FROM (SELECT SUM(oi.quantity * p.unit_price) AS total "
+                                     "FROM order_items oi JOIN products p ON p.product_id = oi.product_id "
+                                     "GROUP BY oi.order_id)").fetchone()[0]
         largest_table = max(conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
                             for t in ("customers", "products", "orders", "order_items"))
-    return {"gross": gross, "max_count": largest_table}
+    return {"gross": gross, "max_order": largest_order, "max_count": largest_table}
 
 
 def parse_rows(text):
@@ -65,6 +68,7 @@ def to_number(cell):
 def sanity_problems(columns, rows, limits):
     """Reasons why a result cannot be true. Empty list means it looks fine."""
     problems = []
+    per_order = any(c.lower().endswith("order_id") for c in columns)   # one row = one order
     for row in rows:
         for column, cell in zip(columns, row):
             value, name = to_number(cell), column.lower()
@@ -76,9 +80,57 @@ def sanity_problems(columns, rows, limits):
             elif value > limits["gross"]:
                 problems.append(f"{column} = {cell} is more than the shop's all-time gross sales "
                                 f"(Rs {limits['gross']:,.0f})")
+            elif per_order and value > limits["max_order"]:
+                problems.append(f"{column} = {cell} is more than the largest real order "
+                                f"(Rs {limits['max_order']:,.0f})")
             elif re.search(r"count|num|number", name) and value > limits["max_count"]:
                 problems.append(f"{column} = {cell} is more than the largest table ({limits['max_count']} rows)")
     return problems[:3]
+
+
+AGGREGATE = re.compile(r"\b(sum|count|avg|total|group_concat)\s*\(", re.IGNORECASE)
+
+
+def select_items(sql):
+    """The comma-separated items between the first SELECT and its FROM, ignoring brackets."""
+    low = sql.lower()
+    start = low.find("select")
+    if start < 0:
+        return []
+    items, depth, current, i = [], 0, "", start + len("select")
+    while i < len(sql):
+        ch = sql[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if depth == 0 and re.match(r"\sfrom\b", low[i:i + 6]):
+            break
+        if depth == 0 and ch == ",":
+            items.append(current.strip())
+            current = ""
+        else:
+            current += ch
+        i += 1
+    return [item for item in items + [current.strip()] if item]
+
+
+def ungrouped_columns(sql):
+    """Plain columns sitting next to SUM/COUNT/AVG in a query with no GROUP BY.
+
+    SQLite runs such a query without any error and fills the plain column from
+    one arbitrary row, so the result looks fine and is wrong. MIN and MAX are left
+    out because SQLite defines that case (the row with the min or max).
+    """
+    low = sql.lower().strip()
+    if low.startswith("with") or "group by" in low:
+        return []
+    items = select_items(sql)
+    if not any(AGGREGATE.search(item) for item in items):
+        return []
+    return [item for item in items
+            if not AGGREGATE.search(item) and " over" not in item.lower()
+            and not re.fullmatch(r"[\d.]+|'[^']*'", item)]
 
 
 def sensitive_columns(columns):
@@ -101,6 +153,17 @@ def check_tool_results(messages, limits):
         if not parsed:
             continue
         columns, rows = parsed
+        ungrouped = ungrouped_columns(sql)
+        if ungrouped:
+            quarantined = ToolMessage(content=QUARANTINE_TEXT, tool_call_id=message.tool_call_id,
+                                      id=message.id, name=message.name)
+            names = ", ".join(c.split(" AS ")[0].split(" as ")[0] for c in ungrouped)
+            detail = f"{names} sits next to SUM/COUNT/AVG but the query has no GROUP BY"
+            return {"messages": [quarantined],
+                    "verdict": {"status": "failure", "kind": "no_group_by", "detail": detail,
+                                "sql": sql, "group_by": names},
+                    "last_problem": "the query was missing a GROUP BY, so its numbers were not used.",
+                    "events": [f"monitor: silent bad result quarantined ({detail})"]}
         problems = sanity_problems(columns, rows, limits)
         if problems:
             # Containment: swap the bad rows out of the shared history so no agent can reuse them.
@@ -109,7 +172,7 @@ def check_tool_results(messages, limits):
             detail = "; ".join(problems)
             return {"messages": [quarantined],
                     "verdict": {"status": "failure", "kind": "bad_result", "detail": detail, "sql": sql},
-                    "last_problem": f"the data failed a sanity check ({detail}).",
+                    "last_problem": "the result failed the Monitor's sanity check, so it was not used.",
                     "events": [f"monitor: silent bad result quarantined ({detail})"]}
         if sensitive_columns(columns):
             return {"verdict": {"status": "needs_approval", "columns": sensitive_columns(columns)},
@@ -195,6 +258,10 @@ def decide_recovery(verdict, retries_left):
     retries_left -= 1
     if kind == "unsupported_answer":
         return "retry", retries_left, "Do not answer yet. Run a corrected query first and answer from its rows.", []
+    if kind == "no_group_by":
+        return "retry", retries_left, (f"The last result was quarantined: {verdict['detail']}, so SQLite "
+                                       f"returned one arbitrary row. Keep the query, add GROUP BY "
+                                       f"{verdict['group_by']} before ORDER BY, and run it again."), []
     if kind == "answer_mismatch":
         return "retry", retries_left, f"Your answer must quote the exact number from the rows: {verdict['detail']}.", []
     if kind == "bad_result":

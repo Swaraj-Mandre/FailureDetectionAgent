@@ -84,6 +84,13 @@ Some failures raise no error at all, and the numbers are simply wrong. Treat a r
 - a count is larger than the table: 40 customers, 25 products, 300 orders, 757 order lines
 - the answer quotes a number that does not appear in the returned rows
 A typical cause is a units bug, such as values stored in paise and read as rupees, which makes every number 100 times too big.
+Other common causes are a missing GROUP BY, or a join that counts the same line twice.
+Fix the query itself. Never hide the bad rows with a WHERE or HAVING filter on the limit, because the numbers that are left are still wrong.
+
+## Missing GROUP BY
+
+SQLite accepts a query that puts SUM, COUNT or AVG next to a plain column, such as p.name or o.order_id, without GROUP BY. It does not raise an error. It adds up every row into one total and fills the plain column from one arbitrary row, so you get a single row that looks real and is wrong.
+Fix: add GROUP BY with every plain column from the SELECT list, for example GROUP BY p.name for revenue per product or GROUP BY o.order_id for the total of each order. Put it after WHERE and before ORDER BY and LIMIT.
 
 ## Personal data
 

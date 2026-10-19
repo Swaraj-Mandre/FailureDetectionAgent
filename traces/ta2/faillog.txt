@@ -10,10 +10,11 @@ Failures by type, all runs so far:
   unsafe               1
   unavailable          1
   syntax               1
+  no_group_by          1
 
 Last 5 rows:
-  2026-10-19T17:25:59 | team-437354 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 2
-  2026-10-19T17:26:00 | team-437354 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 1
-  2026-10-19T17:26:01 | team-437354 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 0
-  2026-10-19T17:26:01 | team-437354 | monitor | unsupported_answer |  | the answer was written without a valid result (last result: Error: dat | recovery stopped: retry budget used up | 0
-  2026-10-19T17:26:08 | contain-on-b857 | monitor | bad_result | SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.q | total_revenue = 24030020.00 is more than the shop's all-time gross sal | recovery advised a retry using guide sections ['Suspicious numbers (si | 2
+  2026-10-19T18:07:40 | team-afcce7 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 2
+  2026-10-19T18:07:41 | team-afcce7 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 1
+  2026-10-19T18:07:41 | team-afcce7 | monitor | busy | SELECT COUNT(*) FROM customers WHERE city = 'Pune' | Error: database is locked (another program is writing to it). | recovery advised a retry using guide sections ['Database locked or bus | 0
+  2026-10-19T18:07:42 | team-afcce7 | monitor | unsupported_answer |  | the answer was written without a valid result (last result: Error: dat | recovery stopped: retry budget used up | 0
+  2026-10-19T18:07:48 | contain-on-e6bb | monitor | bad_result | SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) | total_revenue = 24030020.00 is more than the shop's all-time gross sal | recovery advised a retry using guide sections ['Suspicious numbers (si | 2

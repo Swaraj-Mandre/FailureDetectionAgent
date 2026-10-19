@@ -17,7 +17,7 @@ from langchain_ollama import ChatOllama
 from langgraph.graph import START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from config import CHAT_MODEL, DEFAULT_USER, RETRY_BUDGET
+from config import CHAT_MODEL, DEFAULT_USER, MODEL_RETRIES, RETRY_BUDGET
 from memory import FailureLog, glossary_text, make_glossary_tool
 from rag import advise
 from sql_tool import run_sql
@@ -109,8 +109,9 @@ def build_agent(checkpointer=None, store=None, user_id=DEFAULT_USER, failure_log
     if store is not None:
         tools.append(make_glossary_tool(store, user_id))
 
-    llm = ChatOllama(model=CHAT_MODEL, temperature=0)
-    llm_with_tools = llm.bind_tools(tools)
+    base = ChatOllama(model=CHAT_MODEL, temperature=0)
+    llm = base.with_retry(stop_after_attempt=MODEL_RETRIES)   # only for server hiccups
+    llm_with_tools = base.bind_tools(tools).with_retry(stop_after_attempt=MODEL_RETRIES)
 
     def call_model(state: AgentState):
         # Crash switch for the resume demo: die right after a tool result was saved.

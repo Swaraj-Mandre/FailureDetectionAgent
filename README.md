@@ -66,7 +66,7 @@ recovery --(retries left)--> executor
          '--(not retryable, or budget used up)--> stop -> END
 ```
 
-- **Executor** writes SQL and runs it. **Monitor** checks every result and every answer with plain rules, and quarantines impossible numbers. **Recovery** retries with advice from our error guide, or stops safely. Roles in [ta2/ROLES.md](ta2/ROLES.md).
+- **Executor** writes SQL and runs it. **Monitor** checks every result and every answer with plain rules, and quarantines impossible numbers and queries that are missing a GROUP BY. **Recovery** retries with advice from our error guide, or stops safely. Roles in [ta2/ROLES.md](ta2/ROLES.md).
 - **Retry budget:** 3 retries per question, then the team stops and says what went wrong instead of guessing.
 
 Seed the long-term memory once, then run every demo (each one saves its output to `traces/ta2/`):
@@ -95,10 +95,11 @@ python ta2/run.py all
 |---|---|
 | `ta2/config.py` | models, file paths, retry budget |
 | `ta2/memory.py` | SQLite checkpointer, SQLite store (glossary), failure log |
-| `ta2/rag.py` | Chroma index over `ta2/corpus/error_guide.md` (14 sections) |
+| `ta2/rag.py` | Chroma index over `ta2/corpus/error_guide.md` (15 sections) |
 | `ta2/single_agent.py` | the PBA 1 agent with memory, guide advice and logging (Unit 3 milestone) |
 | `ta2/agents.py` | Executor rules, Monitor checks, Recovery decisions, privacy masking |
 | `ta2/graph.py` | the team graph and the retry budget |
+| `ta2/evaluate.py` | the evaluation: TA1 vs TA2, failure injection, containment. Results and analysis in [ta2/EVALUATION.md](ta2/EVALUATION.md) |
 | `traces/ta2/annotated/` | a routing trace explained step by step |
 
 ## Sample data

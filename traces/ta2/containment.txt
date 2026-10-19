@@ -21,7 +21,7 @@ Turn 2 (same thread, the database is healthy now): How does that compare with Au
   TOOL    1 row(s):
             total_revenue
             235077.25
-  AGENT   The total delivered revenue in August 2026 was Rs. 2,350,772.50, which was lower than the September 2026 revenue of Rs. 24,03,00,20.
+  AGENT   The total delivered revenue in August 2026 was Rs. 2,35,07,7.25, which is significantly lower than the September 2026 revenue of Rs. 24,03,00,20.
   routing:
     - executor: calls run_sql
     - monitor: OFF, result passed on unchecked
@@ -38,11 +38,11 @@ Containment: one corrupted result (x100), Monitor ON
 ========================================================================
 Turn 1: What was the total delivered revenue in September 2026?
   USER    What was the total delivered revenue in September 2026?
-  AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%' GROUP BY p.category)"})
+  AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%'"})
   TOOL    [Quarantined by the Monitor: this result failed a sanity check and must not be used.]
-  RECOVERY[recovery -> executor] The last result was quarantined. Run the query again. Change the condition in the WHERE clause to filter for a specific date range, ensuring the total revenue does not exceed the shop's all-time gross sales.
+  RECOVERY[recovery -> executor] The last result was quarantined. Run the query again. Check the units of the unit_price and discount_pct columns to ensure they are in the correct format (e.g., not in paise if you are working in rupees).
             Try again (2 retries left).
-  AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09-%' GROUP BY p.category)"})
+  AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%'"})
   TOOL    1 row(s):
             total_revenue
             240300.20
@@ -58,7 +58,7 @@ Turn 1: What was the total delivered revenue in September 2026?
 
 Turn 2 (same thread, the database is healthy now): How does that compare with August 2026?
   USER    How does that compare with August 2026?
-  AGENT   calls run_sql({'query': "SELECT SUM(revenue) AS total_revenue FROM (SELECT p.category, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-08-%' GROUP BY p.category)"})
+  AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-08%'"})
   TOOL    1 row(s):
             total_revenue
             235077.25

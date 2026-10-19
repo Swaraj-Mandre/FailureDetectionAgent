@@ -21,6 +21,7 @@ EMBED_MODEL = "nomic-embed-text"
 
 RETRY_BUDGET = 3   # recovery attempts per question before handing over to a human
 RAG_K = 3          # error-guide sections retrieved for each piece of advice
+MODEL_RETRIES = 3  # attempts per model call if the local Ollama server hiccups
 DEFAULT_USER = "owner_pune"   # whose glossary to use when none is given
 
 STATE_DIR.mkdir(parents=True, exist_ok=True)

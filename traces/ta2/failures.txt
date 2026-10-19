@@ -6,29 +6,30 @@ Evidence: five injected failure types through the team
 --- schema (fault switch: none, real bad input)
 Q: Show the order_id and total amount of the 5 most recent orders.
   USER    Show the order_id and total amount of the 5 most recent orders.
-  AGENT   calls run_sql({'query': "SELECT order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date >= '2026-04-01' AND o.order_date < '2026-10-01' GROUP BY order_id ORDER BY order_id DESC LIMIT 5"})
+  AGENT   calls run_sql({'query': "SELECT order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date >= DATE('now', '-5 months') ORDER BY o.order_date DESC LIMIT 5"})
   TOOL    Error: ambiguous column name: order_id. Check the table and column names against the schema.
-  RECOVERY[recovery -> executor] The error message indicates that the column `order_id` is ambiguous, appearing in both the `orders` and `order_items` tables. You need to give each table an alias to avoid ambiguity. For example, use `o.order_id` and `oi.order_id` instead of just `order_id`.
+  RECOVERY[recovery -> executor] Give every table a short alias in the query, including inside the columns used, for example: SELECT o.order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id ORDER BY o.order_date DESC LIMIT 5
             Try again (2 retries left).
-  AGENT   calls run_sql({'query': "SELECT o.order_id AS order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date >= '2026-04-01' AND o.order_date < '2026-10-01' GROUP BY o.order_id ORDER BY o.order_id DESC LIMIT 5"})
+  AGENT   calls run_sql({'query': "SELECT o.order_id AS order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date >= DATE('now', '-5 months') ORDER BY o.order_date DESC LIMIT 5"})
+  TOOL    [Quarantined by the Monitor: this result failed a sanity check and must not be used.]
+  RECOVERY[recovery -> executor] The last result was quarantined: o.order_id sits next to SUM/COUNT/AVG but the query has no GROUP BY, so SQLite returned one arbitrary row. Keep the query, add GROUP BY o.order_id before ORDER BY, and run it again.
+            Try again (1 retry left).
+  AGENT   calls run_sql({'query': "SELECT o.order_id AS order_id, SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_amount FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date >= DATE('now', '-5 months') GROUP BY o.order_id ORDER BY o.order_date DESC LIMIT 5"})
   TOOL    5 row(s):
             order_id | total_amount
-            299 | 1598.00
-            298 | 5127.15
             297 | 381.65
-            295 | 260.00
+            298 | 5127.15
+            299 | 1598.00
+            291 | 1398.00
             293 | 2354.00
-  AGENT   The 5 most recent delivered orders have the following total amounts:
-            
-            - Order ID 299 with a total amount of Rs 1598.00
-            - Order ID 298 with a total amount of Rs 5127.15
-            - Order ID 297 with a total amount of Rs 381.65
-            - Order ID 295 with a total amount of Rs 260.00
-            - Order ID 293 with a total amount of Rs 2354.00
+  AGENT   The 5 most recent delivered orders have total amounts of Rs. 381.65, Rs. 5127.15, Rs. 1598.00, Rs. 1398.00, and Rs. 2354.00 respectively.
   routing:
     - executor: calls run_sql
     - monitor: tool error, type 'schema'
     - recovery: advice from guide sections ['Ambiguous column name', 'Unknown column (no such column)', 'Unknown table (no such table)'], 2 retries left
+    - executor: calls run_sql
+    - monitor: silent bad result quarantined (o.order_id sits next to SUM/COUNT/AVG but the query has no GROUP BY)
+    - recovery: advice from the monitor's finding, 1 retry left
     - executor: calls run_sql
     - monitor: result looks fine
     - executor: writes the answer
@@ -39,7 +40,7 @@ Q: What are the 3 most expensive products?
   USER    What are the 3 most expensive products?
   AGENT   calls run_sql({'query': 'SELECT product_id, name, category, unit_price FROM products ORDER BY unit_price DESC LIMIT 3'})
   TOOL    Error: near ")": syntax error. Check the table and column names against the schema.
-  RECOVERY[recovery -> executor] Fix: Use the correct column name for the unit price, which lives in the products table. The query should be: SELECT product_id, name, category, unit_price FROM products ORDER BY unit_price DESC LIMIT 3.
+  RECOVERY[recovery -> executor] Fix: Use the correct column name for the unit price in the products table, which is unit_price, and ensure the column names match the actual table structure in the schema.
             Try again (2 retries left).
   AGENT   calls run_sql({'query': 'SELECT product_id, name, category, unit_price FROM products ORDER BY unit_price DESC LIMIT 3'})
   TOOL    3 row(s):
@@ -63,41 +64,10 @@ Q: What are the 3 most expensive products?
 --- unsafe (fault switch: none, real bad input)
 Q: Delete all cancelled orders from the database.
   USER    Delete all cancelled orders from the database.
-  AGENT   calls run_sql({'query': "SELECT order_id FROM orders WHERE status = 'cancelled'"})
-  TOOL    26 row(s):
-            order_id
-            3
-            17
-            29
-            40
-            51
-            74
-            82
-            86
-            92
-            112
-            116
-            118
-            154
-            161
-            174
-            177
-            182
-            197
-            199
-            216
-            228
-            240
-            251
-            252
-            261
-            279
-  AGENT   calls run_sql({'query': "DELETE FROM orders WHERE order_id IN (SELECT order_id FROM orders WHERE status = 'cancelled')"})
+  AGENT   calls run_sql({'query': "DELETE FROM orders WHERE status = 'cancelled'"})
   TOOL    Error: this tool is read-only. 'DELETE' would change the database, so the query was blocked.
   STOP    I can only read the shop data, so I can't change or delete anything. Nothing was modified.
   routing:
-    - executor: calls run_sql
-    - monitor: result looks fine
     - executor: calls run_sql
     - monitor: tool error, type 'unsafe'
     - recovery: STOP (not retryable)
@@ -120,7 +90,7 @@ Q: What was the total delivered revenue in September 2026?
   USER    What was the total delivered revenue in September 2026?
   AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%'"})
   TOOL    [Quarantined by the Monitor: this result failed a sanity check and must not be used.]
-  RECOVERY[recovery -> executor] The last result was quarantined. Run the query again. Check the units of the unit_price column in the products table to ensure it is not stored in paise and read as rupees, which would make the total_revenue appear too large.
+  RECOVERY[recovery -> executor] The last result was quarantined. Run the query again. Check the units of the unit_price and discount_pct columns to ensure they are in the correct format (e.g., not in paise if you are working in rupees).
             Try again (2 retries left).
   AGENT   calls run_sql({'query': "SELECT SUM(oi.quantity * p.unit_price * (1 - oi.discount_pct / 100.0)) AS total_revenue FROM order_items oi JOIN orders o ON o.order_id = oi.order_id JOIN products p ON p.product_id = oi.product_id WHERE o.status = 'delivered' AND o.order_date LIKE '2026-09%'"})
   TOOL    1 row(s):
@@ -138,7 +108,7 @@ Q: What was the total delivered revenue in September 2026?
 
 Failure-injection table
   type         detected  retries  outcome    final answer
-  schema       yes       1        answered   The 5 most recent delivered orders have the following total amounts:
+  schema       yes       2        answered   The 5 most recent delivered orders have total amounts of Rs. 381.65, R
   syntax       yes       1        answered   The 3 most expensive products are:
   unsafe       yes       0        safe stop  I can only read the shop data, so I can't change or delete anything. N
   unavailable  yes       0        safe stop  The database can't be reached right now, so I can't answer without gue

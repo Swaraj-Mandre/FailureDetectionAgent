@@ -23,7 +23,7 @@ from langgraph.prebuilt import ToolNode
 from langgraph.types import interrupt
 
 import agents
-from config import CHAT_MODEL, DEFAULT_USER, RETRY_BUDGET
+from config import CHAT_MODEL, DEFAULT_USER, MODEL_RETRIES, RETRY_BUDGET
 from memory import FailureLog, glossary_text, make_checkpointer, make_glossary_tool
 from single_agent import SYSTEM_PROMPT, latest_tool_results
 from sql_tool import run_sql
@@ -49,7 +49,9 @@ def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=T
     limits = agents.load_limits()
 
     tools = [run_sql] + ([make_glossary_tool(store, user_id)] if store is not None else [])
-    executor_llm = ChatOllama(model=CHAT_MODEL, temperature=0).bind_tools(tools)
+    # with_retry only covers server hiccups (a dropped connection), not wrong answers.
+    executor_llm = ChatOllama(model=CHAT_MODEL, temperature=0).bind_tools(tools).with_retry(
+        stop_after_attempt=MODEL_RETRIES)
 
     # ---- Executor
     def executor(state: TeamState):

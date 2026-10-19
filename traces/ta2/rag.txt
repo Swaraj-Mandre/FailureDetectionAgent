@@ -1,6 +1,6 @@
 
 ========================================================================
-U3-3 RAG over our error guide (14 sections in Chroma)
+U3-3 RAG over our error guide (15 sections in Chroma)
 ========================================================================
 
 Q: What does an ambiguous column name error mean, and what should I do when the database is locked?
