@@ -1,0 +1,27 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Segoe UI", "fontSize": "16px", "lineColor": "#475569", "primaryTextColor": "#14213D", "edgeLabelBackground": "#FFFFFF"}}}%%
+flowchart LR
+    subgraph TEAM["The agent team"]
+        direction TB
+        EX["<b>Executor</b>"]
+        MO["<b>Monitor</b>"]
+        RC["<b>Recovery</b>"]
+    end
+    CP[("<b>Checkpointer</b><br/>checkpoints.db<br/>one history per thread_id")]
+    ST[("<b>Store</b><br/>store.db<br/>glossary per user")]
+    FL[("<b>Failure log</b><br/>failure_log.db<br/>one row per failure")]
+    CH[("<b>Error guide</b><br/>Chroma, 15 sections<br/>nomic-embed-text")]
+
+    TEAM <-->|"every step saved, resume after a crash"| CP
+    EX <-->|"remember_term, terms added to the prompt"| ST
+    RC -->|"what failed and what we did"| FL
+    RC <-->|"top 3 sections for the error"| CH
+
+    classDef llm fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#14213D
+    classDef check fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#14213D
+    classDef fix fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#14213D
+    classDef store fill:#F1F5F9,stroke:#64748B,stroke-width:1.5px,color:#14213D
+    class EX llm
+    class MO check
+    class RC fix
+    class CP,ST,FL,CH store
+    style TEAM fill:#F8FAFC,stroke:#94A3B8,stroke-width:1px,color:#14213D

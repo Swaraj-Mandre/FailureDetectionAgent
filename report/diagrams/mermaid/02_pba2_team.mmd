@@ -1,0 +1,41 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Segoe UI", "fontSize": "16px", "lineColor": "#475569", "primaryTextColor": "#14213D", "edgeLabelBackground": "#FFFFFF"}}}%%
+flowchart LR
+    Q(["User question"])
+    EX["<b>Executor</b><br/>qwen2.5:3b writes the SQL"]
+    SQL[("<b>run_sql</b><br/>read-only shop.db")]
+    MR{"<b>Monitor</b><br/>checks the result"}
+    PG["<b>Privacy gate</b><br/>a person approves or masks"]
+    RC["<b>Recovery</b><br/>rules + error guide RAG"]
+    MA{"<b>Monitor</b><br/>checks the answer"}
+    STOP(["<b>Safe stop</b><br/>says why, never guesses"])
+    ANS(["<b>Answer</b><br/>backed by the rows"])
+
+    Q --> EX
+    EX -->|tool call| SQL
+    SQL --> MR
+    MR -->|looks fine| EX
+    MR -->|personal data| PG
+    PG --> EX
+    MR -->|"tool error or bad result: quarantined"| RC
+    RC -->|"advice, retries left"| EX
+    RC -->|"budget used or not retryable"| STOP
+    EX -->|final answer| MA
+    MA -->|matches the rows| ANS
+    MA -->|"not backed by data"| RC
+
+    classDef llm fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#14213D
+    classDef check fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#14213D
+    classDef fix fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#14213D
+    classDef person fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px,color:#14213D
+    classDef store fill:#F1F5F9,stroke:#64748B,stroke-width:1.5px,color:#14213D
+    classDef term fill:#FFFFFF,stroke:#14213D,stroke-width:1.5px,color:#14213D
+    classDef stop fill:#FFE4E6,stroke:#E11D48,stroke-width:2px,color:#14213D
+    class EX llm
+    class SQL store
+    class MR,MA check
+    class RC fix
+    class PG person
+    class STOP stop
+    class Q,ANS term
+    linkStyle 6,11 stroke:#E11D48,stroke-width:2px
+    linkStyle 7 stroke:#059669,stroke-width:2px

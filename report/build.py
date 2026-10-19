@@ -1,4 +1,6 @@
-"""Turn the HTML and SVG sources into the PDF and PNG files we hand in.
+"""Turn the report HTML and the SVG diagram into the PDF and PNG we hand in.
+
+The slides are built separately: python presentation/build_deck.py --pdf
 
     python report/build.py
 
@@ -19,7 +21,6 @@ JOBS = [
     ("png", REPO_DIR / "report" / "diagrams" / "architecture.svg",
      REPO_DIR / "report" / "diagrams" / "architecture.png", "1200,640"),
     ("pdf", REPO_DIR / "report" / "report.html", REPO_DIR / "report" / "report.pdf", None),
-    ("pdf", REPO_DIR / "presentation" / "slides.html", REPO_DIR / "presentation" / "QueryMend_slides.pdf", None),
 ]
 
 

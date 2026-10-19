@@ -1,0 +1,24 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Segoe UI", "fontSize": "15px", "primaryTextColor": "#14213D", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#F8FAFC", "actorBorder": "#14213D", "noteBkgColor": "#FEF3C7", "noteBorderColor": "#D97706"}}}%%
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant E as Executor
+    participant T as run_sql
+    participant M as Monitor
+    participant R as Recovery
+    U->>E: Show the order_id and total of the 5 most recent orders
+    E->>T: SELECT order_id, SUM(...) with no table alias
+    T-->>M: Error: ambiguous column name: order_id
+    M->>R: failure, type schema
+    R->>R: retrieve 3 sections from the error guide
+    R->>E: give every table an alias (2 retries left)
+    E->>T: SELECT o.order_id, SUM(...) with no GROUP BY
+    T-->>M: 1 row, runs without error
+    Note over M: SUM next to a plain column and no GROUP BY: quarantined
+    M->>R: failure, type no_group_by
+    R->>E: add GROUP BY o.order_id (1 retry left)
+    E->>T: corrected query
+    T-->>M: 5 rows
+    M->>E: result looks fine
+    E->>M: final answer
+    M->>U: answer matches the rows

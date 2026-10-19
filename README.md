@@ -105,10 +105,10 @@ python ta2/run.py all
 ## Report and slides
 
 - [report/report.pdf](report/report.pdf): the 4-page report (architecture, roles, checklist, TA1 vs TA2, error propagation, limits, contribution)
-- [presentation/QueryMend_slides.pdf](presentation/QueryMend_slides.pdf): 10 slides for the jury
-- [report/diagrams/architecture.png](report/diagrams/architecture.png): both graphs in one picture
+- [presentation/QueryMend_slides.pptx](presentation/QueryMend_slides.pptx): 11 slides for the jury, with speaker notes ([PDF copy](presentation/QueryMend_slides.pdf))
+- [report/diagrams/mermaid/](report/diagrams/mermaid/): the diagrams as Mermaid code; draw.io exports go in `report/diagrams/drawio/`
 
-Both PDFs are built from the HTML next to them with `python report/build.py`, which uses the headless mode of Microsoft Edge.
+`python report/build.py` prints the report HTML to PDF with headless Microsoft Edge. `python presentation/build_deck.py --pdf` builds the deck with python-pptx (`pip install python-pptx`, only needed for the slides) and exports the PDF through PowerPoint.
 
 ## Sample data
 
