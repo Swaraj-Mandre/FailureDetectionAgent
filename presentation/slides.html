@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QueryMend slides</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  :root { --text: #1f2933; --accent: #1f5f8b; --grey: #6b7280; --line: #d1d5db; --fill: #f5f7f9; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #ffffff; color: var(--text); font-family: "Segoe UI", Arial, sans-serif; }
+  .slide { width: 1280px; height: 720px; padding: 64px 80px 56px; position: relative; overflow: hidden; break-after: page; background: #ffffff; }
+  .slide:last-child { break-after: auto; }
+  .kicker { font-size: 18px; font-weight: 600; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 14px; }
+  h1 { font-size: 44px; line-height: 1.15; margin: 0 0 22px; font-weight: 700; letter-spacing: -0.5px; max-width: 1060px; }
+  h1.big { font-size: 52px; }
+  p { font-size: 24px; line-height: 1.45; margin: 0 0 16px; max-width: 980px; }
+  .grey { color: var(--grey); }
+  .accent { color: var(--accent); }
+  .footer { position: absolute; left: 80px; right: 80px; bottom: 26px; display: flex; justify-content: space-between; font-size: 14px; color: var(--grey); }
+  .row { display: flex; gap: 28px; }
+  .card { flex: 1; border: 1.5px solid var(--line); border-radius: 12px; padding: 26px 28px; background: #ffffff; }
+  .card.key { border: 2.5px solid var(--accent); }
+  .card h3 { font-size: 24px; margin: 0 0 10px; }
+  .card p { font-size: 20px; margin: 0; color: #374151; }
+  .tag { display: inline-block; font-size: 15px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .tag.accent { color: var(--accent); }
+  .number { font-size: 120px; font-weight: 700; letter-spacing: -2px; line-height: 1; }
+  .strike { text-decoration: line-through; text-decoration-thickness: 6px; text-decoration-color: var(--accent); }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 0.9em; background: var(--fill); padding: 2px 8px; border-radius: 6px; }
+  table { border-collapse: collapse; font-size: 22px; }
+  th, td { text-align: left; padding: 12px 22px 12px 0; border-bottom: 1.5px solid var(--line); }
+  th { font-size: 17px; color: var(--grey); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  td.n, th.n { text-align: right; padding-right: 0; padding-left: 22px; }
+  .crop { width: 770px; height: 488px; overflow: hidden; border: 1.5px solid var(--line); border-radius: 12px; }
+  .crop img { width: 1200px; margin-left: -413px; margin-top: -17px; display: block; }
+  .flow { display: flex; flex-direction: column; gap: 14px; width: 330px; }
+  .node { border: 1.5px solid #4b5563; border-radius: 10px; padding: 12px 18px; font-size: 20px; font-weight: 600; background: var(--fill); }
+  .node small { display: block; font-size: 15px; font-weight: 400; color: var(--grey); }
+  .node.key { border: 2.5px solid var(--accent); background: #ffffff; }
+  .down { color: var(--grey); font-size: 18px; padding-left: 18px; }
+  .down.fail { color: var(--accent); font-weight: 600; }
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
+  ol.steps li { counter-increment: s; font-size: 24px; margin: 0 0 22px; padding-left: 62px; position: relative; line-height: 1.35; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  ol.steps li small { display: block; font-size: 18px; color: var(--grey); }
+</style>
+</head>
+<body>
+
+<!-- 1. Hook -->
+<section class="slide">
+  <div class="kicker">September revenue, Sahyadri Stores</div>
+  <div class="number" style="margin-top:40px">Rs <span class="strike">24,03,00,20</span></div>
+  <p style="font-size:30px; margin-top:34px">Our agent said this with full confidence.<br>The real number is <span class="accent" style="font-weight:700">Rs 2,40,300</span>. No error. No warning.</p>
+  <p class="grey" style="font-size:24px; margin-top:40px">How do you catch an AI agent that is wrong and doesn't know it?</p>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>1</span></div>
+</section>
+
+<!-- 2. Problem -->
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h1>Agents fail in three ways. Only one of them is easy to see.</h1>
+  <div class="row" style="margin-top:40px">
+    <div class="card"><span class="tag">Loud</span><h3>The tool throws an error</h3><p>"no such column: amount". Easy to catch, easy to retry.</p></div>
+    <div class="card key"><span class="tag accent">Quiet</span><h3>The number is just wrong</h3><p>Prices read in paise, a missing GROUP BY. The query runs fine.</p></div>
+    <div class="card key"><span class="tag accent">Spreading</span><h3>The wrong number is reused</h3><p>The next question builds on it, and the mistake travels.</p></div>
+  </div>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>2</span></div>
+</section>
+
+<!-- 3. One line -->
+<section class="slide">
+  <div class="kicker">QueryMend</div>
+  <h1 class="big">Ask your shop database a question in plain English. If the answer is wrong, the agent notices, fixes it, or says it can't.</h1>
+  <p class="grey" style="margin-top:36px">qwen2.5:3b · LangGraph · SQLite · Chroma · runs fully offline, free</p>
+  <p class="grey" style="font-size:20px; margin-top:60px">Swaraj Mandre · Saumya Joshi · Siddhant Pawar<br>Topic 17: an agent that detects and recovers from its own tool failures</p>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>3</span></div>
+</section>
+
+<!-- 4. PBA 1 -->
+<section class="slide">
+  <div class="kicker">PBA 1</div>
+  <h1>One agent that notices its own tool failures</h1>
+  <div class="row" style="align-items:flex-start; gap:60px">
+    <div class="flow">
+      <div class="node">agent <small>qwen2.5:3b with run_sql</small></div>
+      <div class="down">↓ tool call</div>
+      <div class="node">tools <small>read-only SQL, clear errors</small></div>
+      <div class="down">↓</div>
+      <div class="node key">route_after_tools <small>did the tool fail?</small></div>
+      <div class="down fail">↓ error</div>
+      <div class="node">handle_failure <small>typed hint, 3 tries max</small></div>
+    </div>
+    <div style="flex:1">
+      <div class="card" style="margin-bottom:22px"><span class="tag">Slide version</span><p>One generic notice for every error. Sent the same broken query 7 times. Told the user to run a DELETE by hand.</p></div>
+      <div class="card key"><span class="tag accent">Our refinement</span><p>Sort the error, give a specific hint, cap retries at 3, lock the tool when retrying can't help.</p></div>
+      <p class="grey" style="font-size:19px; margin-top:20px">Still blind to wrong data that raises no error.</p>
+    </div>
+  </div>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>4</span></div>
+</section>
+
+<!-- 5. PBA 2 team -->
+<section class="slide" style="padding-top:48px">
+  <div class="kicker">PBA 2</div>
+  <h1 style="margin-bottom:18px">Three agents, one job each</h1>
+  <div class="row" style="gap:36px; align-items:flex-start">
+    <div class="crop"><img src="../report/diagrams/architecture.svg" alt="PBA 2 team graph"></div>
+    <div style="flex:1; padding-top:6px">
+      <p style="font-size:21px"><b>Executor</b> writes and runs the SQL. The only one that touches the data.</p>
+      <p style="font-size:21px"><b class="accent">Monitor</b> checks every result and answer with plain rules. No model, same verdict every time.</p>
+      <p style="font-size:21px"><b>Recovery</b> gives advice from our error guide, or stops after 3 retries.</p>
+    </div>
+  </div>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>5</span></div>
+</section>
+
+<!-- 6. Memory and RAG -->
+<section class="slide">
+  <div class="kicker">Unit 3 layer</div>
+  <h1>It remembers, it resumes, and it reads its own error guide</h1>
+  <div class="row" style="margin-top:34px; gap:22px">
+    <div class="card"><span class="tag">Checkpointer</span><h3>Follow-ups work</h3><p>"And in September?" knows what you asked before. A crashed run resumes.</p></div>
+    <div class="card"><span class="tag">Store</span><h3>Your words stick</h3><p>"Premium product means above Rs 1500" survives a restart.</p></div>
+    <div class="card"><span class="tag">Failure log</span><h3>Nothing is hidden</h3><p>Every failure, its SQL and what happened next, in SQLite.</p></div>
+    <div class="card key"><span class="tag accent">Error guide RAG</span><h3>Specific advice</h3><p>15 sections in Chroma. Says "I don't know" when the guide doesn't cover it.</p></div>
+  </div>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>6</span></div>
+</section>
+
+<!-- 7. Demo plan -->
+<section class="slide">
+  <div class="kicker">Live demo</div>
+  <h1>Four runs, about three minutes</h1>
+  <ol class="steps" style="margin-top:30px">
+    <li>One corrupted result, Monitor off, then on <small><code>python ta2/run.py containment</code></small></li>
+    <li>Five injected failure types and the evidence table <small><code>python ta2/run.py failures</code></small></li>
+    <li>Personal data paused for a person: approve, then reject <small><code>python ta2/run.py privacy</code></small></li>
+    <li>Your question, or your edge case <small>Every run is also saved in <code>traces/</code> as a backup</small></li>
+  </ol>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>7</span></div>
+</section>
+
+<!-- 8. Containment -->
+<section class="slide">
+  <div class="kicker">Error propagation, 10 runs each</div>
+  <h1>With the Monitor on, a bad number never reaches the next question</h1>
+  <div class="row" style="margin-top:30px; gap:40px">
+    <div class="card">
+      <span class="tag">Monitor off</span>
+      <div class="number" style="font-size:96px">10/10</div>
+      <p style="margin-top:14px">runs carried the wrong number into the follow-up answer</p>
+    </div>
+    <div class="card key">
+      <span class="tag accent">Monitor on</span>
+      <div class="number accent" style="font-size:96px">0/10</div>
+      <p style="margin-top:14px">The bad result is swapped for a quarantine note before any agent reads it</p>
+    </div>
+  </div>
+  <p class="grey" style="font-size:20px; margin-top:24px">Cost: 2 extra model calls and about 2 seconds per question.</p>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>8</span></div>
+</section>
+
+<!-- 9. TA1 vs TA2 -->
+<section class="slide">
+  <div class="kicker">Same 5 cases, 3 runs each</div>
+  <h1>Fewer wrong answers, more model calls</h1>
+  <div class="row" style="gap:60px; align-items:flex-start; margin-top:10px">
+    <table style="flex:1">
+      <tr><th></th><th class="n">PBA 1</th><th class="n">PBA 2</th></tr>
+      <tr><td>Wrong answers given to the user</td><td class="n">4 / 15</td><td class="n accent"><b>0 / 15</b></td></tr>
+      <tr><td>Silent corruption caught</td><td class="n">0 / 3</td><td class="n accent"><b>3 / 3</b></td></tr>
+      <tr><td>Model calls, corrupt case</td><td class="n">2.0</td><td class="n">6.0</td></tr>
+      <tr><td>Model calls, clean case</td><td class="n">2.0</td><td class="n">3.0</td></tr>
+    </table>
+    <div style="width:360px">
+      <span class="tag">What got worse</span>
+      <p style="font-size:20px">Recovery costs 2 to 3 times the calls. Even the clean case needs one retry.</p>
+      <span class="tag accent">Found by testing</span>
+      <p style="font-size:20px">A missing GROUP BY slipped past our number checks. The Monitor now reads the SQL too.</p>
+    </div>
+  </div>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>9</span></div>
+</section>
+
+<!-- 10. Next -->
+<section class="slide">
+  <div class="kicker">What's next</div>
+  <h1>From a course project to a tool a shop owner can trust</h1>
+  <ol class="steps" style="margin-top:30px">
+    <li>Owners set their own limits <small>"An order is never above Rs 50,000"</small></li>
+    <li>Real databases through a read-only user <small>Postgres or MySQL, same checks</small></li>
+    <li>A simple page: the answer, the SQL, and a note when the Monitor stepped in</li>
+  </ol>
+  <p class="grey" style="font-size:20px; margin-top:20px">github.com/Swaraj-Mandre/FailureDetectionAgent · Thank you. Questions?</p>
+  <div class="footer"><span>QueryMend · Group 17, AIA_05</span><span>10</span></div>
+</section>
+
+</body>
+</html>

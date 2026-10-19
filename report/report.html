@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QueryMend report</title>
+<style>
+  @page { size: A4; margin: 14mm 15mm 14mm 15mm; }
+  :root { --text: #1f2933; --accent: #1f5f8b; --grey: #6b7280; --line: #d1d5db; --fill: #f5f7f9; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--text); font: 9.4pt/1.4 "Segoe UI", Arial, sans-serif; background: #ffffff; }
+  .page { break-after: page; }
+  .page:last-child { break-after: auto; }
+  h1 { font-size: 20pt; margin: 0 0 2pt; letter-spacing: -0.2pt; }
+  h2 { font-size: 12pt; margin: 10pt 0 3pt; color: var(--accent); }
+  h2 .num { color: var(--grey); font-weight: 400; margin-right: 4pt; }
+  p { margin: 0 0 6pt; }
+  .lead { font-size: 11pt; margin: 2pt 0 6pt; }
+  .meta { color: var(--grey); font-size: 9pt; margin-bottom: 8pt; border-bottom: 1px solid var(--line); padding-bottom: 7pt; }
+  table { width: 100%; border-collapse: collapse; margin: 3pt 0 7pt; font-size: 8.8pt; }
+  th, td { text-align: left; vertical-align: top; padding: 2.4pt 5pt; border-bottom: 1px solid var(--line); }
+  th { background: var(--fill); font-weight: 600; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  code, .path { font-family: Consolas, "Courier New", monospace; font-size: 8.3pt; color: #374151; }
+  .fig { width: 100%; border: 1px solid var(--line); border-radius: 4pt; margin: 2pt 0 3pt; }
+  .caption { color: var(--grey); font-size: 8.5pt; margin-bottom: 6pt; }
+  ul { margin: 0 0 6pt 14pt; padding: 0; }
+  li { margin-bottom: 2pt; }
+  .strong { font-weight: 600; }
+  .callout { border-left: 3pt solid var(--accent); padding: 4pt 8pt; background: var(--fill); margin: 4pt 0 8pt; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; }
+</style>
+</head>
+<body>
+
+<!-- ======================= PAGE 1 ======================= -->
+<section class="page">
+  <h1>QueryMend</h1>
+  <p class="lead">A talk-to-your-database agent that notices when it is wrong, fixes what it can, and says so when it can't.</p>
+  <div class="meta">
+    Agentic AI, PBA 1 (TA1) and PBA 2 (TA2), Topic 17: an agent that detects and recovers from its own tool failures.<br>
+    Group 17, AIA_05, MIT School of Computing, Pune. Swaraj Mandre (ADT23SOCB1192), Saumya Joshi (ADT23SOCB0997), Siddhant Pawar (ADT23SOCB1117).<br>
+    Code: <span class="path">github.com/Swaraj-Mandre/FailureDetectionAgent</span>. Everything runs offline: qwen2.5:3b and nomic-embed-text through Ollama.
+  </div>
+
+  <h2><span class="num">1</span>The problem</h2>
+  <p>Ask a text-to-SQL agent "top 3 products last month" and it may join the wrong tables, invent a column, or read prices in the wrong unit. Some of these failures raise an error. The worst ones do not: the agent reports a confident wrong number and nobody notices. Our shop database (Sahyadri Stores: 40 customers, 25 products, 300 orders, April to September 2026) has no "amount" column on purpose, so the model has to work revenue out, and it can get that wrong.</p>
+  <p><span class="strong">PBA 1</span> builds one agent that catches its own tool failures. <span class="strong">PBA 2</span> adds memory, a retrieval-based error guide and a three-agent team that also catches the failures that raise no error, and stops them from spreading.</p>
+
+  <h2><span class="num">2</span>Architecture</h2>
+  <img class="fig" src="diagrams/architecture.png" alt="PBA 1 graph and PBA 2 agent team">
+  <p class="caption">Left: the PBA 1 graph (manual StateGraph). Right: the PBA 2 team in one LangGraph. Blue paths are the failure paths. Dashed boxes are the Unit 3 stores, all SQLite or Chroma files on local disk.</p>
+
+  <p><span class="strong">PBA 1 in one paragraph.</span> One tool, <code>run_sql</code>, is read-only and runs one SELECT at a time. It fails with a clear <code>Error:</code> message on bad input (blocked words, several statements, unknown columns). <code>route_after_tools</code> sends any failed result to <code>handle_failure</code>, which sorts the error into a type and either sends a specific hint or removes the tool for unsafe and unreachable cases. Our refinement (<span class="path">ta1/REFINEMENT_NOTES.md</span>): the slide version sent one generic notice for every failure, so the agent retried a dead database, repeated the same broken query 7 times and once told the user to run a DELETE themselves. The refined handler classifies, caps retries at 3 and detects repeats. It still could not see wrong data that raises no error. That gap is why PBA 2 has a Monitor.</p>
+</section>
+
+<!-- ======================= PAGE 2 ======================= -->
+<section class="page">
+  <h2><span class="num">3</span>Roles (U4-1)</h2>
+  <table>
+    <tr><th style="width:12%"></th><th style="width:22%">Executor</th><th style="width:24%">Monitor</th><th style="width:22%">Recovery</th><th style="width:20%">Privacy gate (person)</th></tr>
+    <tr><td class="strong">Goal</td><td>Turn the question into SQL, run it, answer from the rows</td><td>Nothing failed, impossible or unapproved reaches another agent or the user</td><td>After a failure, get a corrected retry or stop safely</td><td>Decide if personal data is shown</td></tr>
+    <tr><td class="strong">Tools</td><td><code>run_sql</code>, <code>remember_term</code>, qwen2.5:3b</td><td>None. Python rules over the rows, the SQL and the shop's real limits</td><td>Error guide RAG (Chroma), failure log</td><td>LangGraph <code>interrupt</code></td></tr>
+    <tr><td class="strong">Inputs</td><td>Conversation, glossary, advice</td><td>Each SQL result with its query, each final answer</td><td>Monitor's verdict, failed SQL, budget left</td><td>Columns that look personal (email, phone)</td></tr>
+    <tr><td class="strong">Outputs</td><td>A tool call or a final answer</td><td>ok, failure (with a type) or needs approval. Swaps a bad result for a quarantine note</td><td>Typed advice <code>[recovery -&gt; executor]</code> or a safe stop; a failure-log row</td><td>Approve, or reject with columns masked</td></tr>
+    <tr><td class="strong">Limits</td><td>Only agent that touches the database, read-only. Must not use a quarantined result</td><td>Never writes SQL, never talks to the user. Same verdict every time</td><td>3 retries per question. Never retries unsafe or unreachable cases</td><td>Pauses only for personal data. Cannot change the query</td></tr>
+  </table>
+  <p>The Monitor uses no model on purpose: a 3B model checking another 3B model shares its blind spots. Its rules are worked out from the data: no negative money, nothing above all-time gross sales (Rs 12,99,209), no single order above the largest real order (Rs 16,189), no count above the largest table (757 rows), and no SUM or COUNT next to a plain column without GROUP BY.</p>
+
+  <h2><span class="num">4</span>Component checklist</h2>
+  <table>
+    <tr><th style="width:8%">ID</th><th style="width:44%">What we built</th><th style="width:30%">Evidence</th><th style="width:18%">Run</th></tr>
+    <tr><td>U3-1</td><td>SQLite checkpointer + <code>thread_id</code>. Without it, "And in September?" has no context; with it, the follow-up works (55 then 63 delivered orders)</td><td class="path">traces/ta2/amnesia.txt, restart.txt</td><td class="path">run.py amnesia, restart</td></tr>
+    <tr><td>U3-2</td><td>SQLite store, namespace <code>(user_id, "glossary")</code>. "Premium product = price above Rs 1500" saved in one thread, used in a new process and thread</td><td class="path">traces/ta2/glossary.txt</td><td class="path">run.py glossary</td></tr>
+    <tr><td>U3-3</td><td>Chroma over our own error guide (15 sections), nomic-embed-text, grounded prompt. k=1 misses half of a two-part question, k=3 answers both; "connect to MySQL" gets "I don't know"</td><td class="path">traces/ta2/rag.txt, ta2/corpus/error_guide.md</td><td class="path">run.py rag</td></tr>
+    <tr><td>U3-4</td><td>TA1 tool kept. Failures routed, explained with guide advice, logged in SQLite. Resume after a crash from the last checkpoint</td><td class="path">traces/ta2/advice.txt, resume.txt, faillog.txt</td><td class="path">run.py advice, resume, faillog</td></tr>
+    <tr><td>U4-1</td><td>Role table above</td><td class="path">ta2/ROLES.md</td><td></td></tr>
+    <tr><td>U4-2</td><td>Executor, Monitor, Recovery pattern from our topic row. The retry budget (3) is the hop limit</td><td class="path">traces/ta2/annotated/routing_silent_failure.md, budget.txt</td><td class="path">run.py team, budget</td></tr>
+    <tr><td>U4-3</td><td>Human approval before personal data is shown. Approve shows it, reject masks it</td><td class="path">traces/ta2/privacy.txt</td><td class="path">run.py privacy</td></tr>
+    <tr><td>U4-4</td><td>Error propagation, measured over 10 runs per mode (section 7)</td><td class="path">traces/ta2/containment.txt, traces/eval/</td><td class="path">evaluate.py</td></tr>
+    <tr><td>EV</td><td>Same 5 cases on TA1 and TA2, 3 runs each (section 6)</td><td class="path">traces/eval/results.json</td><td class="path">evaluate.py</td></tr>
+  </table>
+
+</section>
+
+<!-- ======================= PAGE 3 ======================= -->
+<section class="page">
+  <h2><span class="num">5</span>Retry budget and the five failure types</h2>
+  <table>
+    <tr><th>Failure type (injected)</th><th>How it is caught</th><th class="n">Detected</th><th>Outcome (3 runs)</th><th class="n">Avg retries</th></tr>
+    <tr><td>schema: ambiguous <code>order_id</code></td><td>tool error, guide advice</td><td class="n">3/3</td><td>3/3 correct</td><td class="n">2.0</td></tr>
+    <tr><td>syntax: stray bracket in the query</td><td>tool error, guide advice</td><td class="n">3/3</td><td>3/3 correct</td><td class="n">1.0</td></tr>
+    <tr><td>unsafe: "delete all cancelled orders"</td><td>tool refuses, no retry</td><td class="n">3/3</td><td>3/3 safe refusal</td><td class="n">0.0</td></tr>
+    <tr><td>unavailable: database down</td><td>tool error, no retry</td><td class="n">3/3</td><td>3/3 safe stop</td><td class="n">0.0</td></tr>
+    <tr><td>bad result: values 100x too big, no error</td><td>Monitor bounds, quarantine</td><td class="n">3/3</td><td>3/3 correct</td><td class="n">1.0</td></tr>
+  </table>
+  <p>When the budget runs out (database locked on every try), the Executor still tried to answer; the Monitor rejected the answer because no valid result backed it, and Recovery wrote a fixed stop message naming the cause (<span class="path">traces/ta2/budget.txt</span>). A lock that clears after two tries recovers inside the budget.</p>
+  <h2><span class="num">6</span>TA1 vs TA2 on the same five cases (EV)</h2>
+  <table>
+    <tr><th>Case</th><th>TA1 (single agent)</th><th>TA2 (team)</th><th class="n">Model calls TA1 / TA2</th><th class="n">Time (s) TA1 / TA2</th></tr>
+    <tr><td>clean question</td><td>3/3 correct</td><td>3/3 correct</td><td class="n">2.0 / 3.0</td><td class="n">2.9 / 3.6</td></tr>
+    <tr><td>needs a schema fix</td><td>2/3 correct, 1/3 wrong</td><td>3/3 correct</td><td class="n">3.0 / 5.0</td><td class="n">4.3 / 6.7</td></tr>
+    <tr><td>unsafe request</td><td>3/3 safe</td><td>3/3 safe</td><td class="n">2.0 / 1.0</td><td class="n">0.9 / 0.4</td></tr>
+    <tr><td>database down</td><td>3/3 safe</td><td>3/3 safe</td><td class="n">2.0 / 1.0</td><td class="n">0.8 / 0.6</td></tr>
+    <tr><td>silent corruption (x100)</td><td>3/3 wrong</td><td>3/3 safe stop</td><td class="n">2.0 / 6.0</td><td class="n">1.6 / 5.2</td></tr>
+  </table>
+  <p class="caption">qwen2.5:3b, temperature 0, RTX 4060. Judged by fixed rules against known answers. Source: <span class="path">python ta2/evaluate.py</span>, every answer saved in <span class="path">traces/eval/results.json</span>.</p>
+
+  <div class="two">
+    <div>
+      <p class="strong">What got better</p>
+      <ul>
+        <li>TA1 gave a wrong number in 4 of 15 runs. TA2 gave none.</li>
+        <li>Silent corruption: TA1 reported Rs 24,03,00,20 every time. TA2 caught it and refused to guess.</li>
+        <li>Unsafe and unreachable cases end with a fixed message after one model call, half of TA1's cost.</li>
+      </ul>
+    </div>
+    <div>
+      <p class="strong">What got worse</p>
+      <ul>
+        <li>Recovery costs 2 to 3 times the calls and time on cases that need a fix (corrupt: 6.0 vs 2.0 calls).</li>
+        <li>The clean case takes one retry in TA2. Its prompt adds team rules, and with them the model drops GROUP BY; the Monitor sends it back.</li>
+        <li>A fault that never clears uses all 3 retries before stopping.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2><span class="num">7</span>Measured challenge: error propagation (U4-4)</h2>
+  <p>One result is corrupted (x100) in turn 1. Turn 2 asks "How does that compare with August 2026?" in the same thread, so it reuses whatever turn 1 left in the shared history. 10 runs per mode.</p>
+  <table>
+    <tr><th>Monitor</th><th class="n">Bad value in history</th><th class="n">Wrong in turn 1</th><th class="n">Carried to turn 2</th><th class="n">Turn 1 correct</th><th class="n">Calls</th><th class="n">Time (s)</th></tr>
+    <tr><td>off</td><td class="n">10/10</td><td class="n">10/10</td><td class="n">10/10</td><td class="n">0/10</td><td class="n">4.0</td><td class="n">3.5</td></tr>
+    <tr><td>on</td><td class="n">0/10</td><td class="n">0/10</td><td class="n">0/10</td><td class="n">10/10</td><td class="n">6.0</td><td class="n">5.5</td></tr>
+  </table>
+  <div class="callout">How the error spreads: the Executor writes the bad number into its answer, the answer stays in the shared history, and the next turn builds on it (in the saved trace, turn 2 also garbled August's revenue). Containment works because the Monitor replaces the bad ToolMessage with a quarantine note, using the same message id, before any agent reads it. Cost of containment: 2 extra model calls and about 2 seconds per question.</div>
+
+</section>
+
+<!-- ======================= PAGE 4 ======================= -->
+<section class="page">
+  <h2><span class="num">8</span>What the evaluation found in our own code</h2>
+  <p>The first full run showed TA2 wrong on the clean question 3 times out of 3. The saved answers showed why: the Executor wrote <code>SELECT p.name, SUM(...)</code> with no GROUP BY. SQLite runs that without an error and returns one row, the whole month's revenue next to one arbitrary product name. Our number bounds could not see it, because the total was real. The same bug gave TA1's wrong answer (Rs 8,13,186.80 for one order), and in the schema case the guide's advice then told the model to filter out large totals, hiding the symptom.</p>
+  <p>We fixed the checks, not the judge: the Monitor now reads the SQL and quarantines SUM or COUNT next to a plain column with no GROUP BY, Recovery names the GROUP BY to add, and the guide gained a section saying never to hide bad rows with a filter. TA2's clean case went from 3/3 wrong to 3/3 correct (<span class="path">ta2/EVALUATION.md</span>).</p>
+  <h2><span class="num">9</span>Limits</h2>
+  <ul>
+    <li><span class="strong">Small samples.</span> 3 runs per case (10 for containment). At temperature 0 repeats are close to identical, so they show stability more than spread. All numbers come from one fresh run.</li>
+    <li><span class="strong">The Monitor only knows what we wrote down.</span> It catches numbers outside the shop's real limits and one SQL pattern. A wrong answer that stays inside the limits, such as a filter on order lines instead of order totals, still gets through. We saw this with a "big order" glossary term.</li>
+    <li><span class="strong">The model invents stand-ins.</span> Asked for data we do not have (loyalty points), the 3B model sometimes answers anyway with no error. Neither version catches this.</li>
+    <li><span class="strong">One model, one database.</span> A larger model would make fewer SQL mistakes, so the Monitor would fire less often and the cost gap would shrink.</li>
+    <li><span class="strong">The judge is rule based.</span> It may miss an oddly worded correct answer. All answers are saved for checking by hand.</li>
+  </ul>
+
+  <h2><span class="num">10</span>Next steps</h2>
+  <ul>
+    <li>Stop earlier on a persistent fault: if the same check fails twice with the same numbers, stop instead of spending the third retry.</li>
+    <li>Let the shop owner add their own Monitor limits next to their glossary terms ("an order is never above Rs 50,000").</li>
+    <li>Point the same team at a real Postgres or MySQL database through a read-only user, with the tool doing the same checks.</li>
+    <li>A small web page for the owner: the answer, the SQL behind it, and a plain note whenever the Monitor stepped in.</li>
+  </ul>
+
+  <h2><span class="num">11</span>How to run</h2>
+  <table>
+    <tr><th style="width:42%">Command</th><th>What it does</th></tr>
+    <tr><td class="path">pip install -r requirements.txt<br>python data/make_shop_db.py</td><td>Set up, and build the same shop database every time (seed 17)</td></tr>
+    <tr><td class="path">python ta1/run_cases.py</td><td>PBA 1: all six test cases, traces to <span class="path">traces/ta1/</span></td></tr>
+    <tr><td class="path">python ta2/seed_store.py<br>python ta2/run.py all</td><td>PBA 2: seed the glossary store, then all 12 demos (about 95 s), traces to <span class="path">traces/ta2/</span></td></tr>
+    <tr><td class="path">python ta2/evaluate.py</td><td>Every number in sections 5 to 7 (about 4 minutes)</td></tr>
+  </table>
+
+  <h2><span class="num">12</span>Contribution</h2>
+  <table>
+    <tr><th style="width:22%">Member</th><th>Built</th><th style="width:22%">Can also explain</th></tr>
+    <tr><td>Swaraj Mandre<br><span class="path">ADT23SOCB1192</span></td><td>PBA 1 agent and its refinement; PBA 2 graph wiring, Monitor rules, retry budget, containment demo</td><td>Memory</td></tr>
+    <tr><td>Saumya Joshi<br><span class="path">ADT23SOCB0997</span></td><td>Memory: checkpointer and resume after a crash, SQLite store and glossary, failure log, privacy approval gate</td><td>RAG</td></tr>
+    <tr><td>Siddhant Pawar<br><span class="path">ADT23SOCB1117</span></td><td>RAG: error guide, Chroma index, Recovery agent; evaluation script and tables</td><td>PBA 1 agent</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

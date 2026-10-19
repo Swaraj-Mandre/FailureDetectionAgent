@@ -102,6 +102,14 @@ python ta2/run.py all
 | `ta2/evaluate.py` | the evaluation: TA1 vs TA2, failure injection, containment. Results and analysis in [ta2/EVALUATION.md](ta2/EVALUATION.md) |
 | `traces/ta2/annotated/` | a routing trace explained step by step |
 
+## Report and slides
+
+- [report/report.pdf](report/report.pdf): the 4-page report (architecture, roles, checklist, TA1 vs TA2, error propagation, limits, contribution)
+- [presentation/QueryMend_slides.pdf](presentation/QueryMend_slides.pdf): 10 slides for the jury
+- [report/diagrams/architecture.png](report/diagrams/architecture.png): both graphs in one picture
+
+Both PDFs are built from the HTML next to them with `python report/build.py`, which uses the headless mode of Microsoft Edge.
+
 ## Sample data
 
 `data/shop.db` is a made-up retail shop (Sahyadri Stores): 40 customers, 25 products, 300 orders from April to September 2026. See [data/schema.md](data/schema.md).
