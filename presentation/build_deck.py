@@ -181,7 +181,7 @@ def slide_hook(prs):
     text(s, MARGIN, 5.75, 11.5, 0.5, "No error. No warning. Just a wrong number, a hundred times too big.", size=20, colour=MUTED)
     footer(s, 1, dark=True)
     notes(s, "Pause for two seconds on the number. Ask the room: would you have caught that? "
-             "The tool returned prices in paise instead of rupees. Nothing crashed, so a normal agent just reports it. "
+             "In this test we made the tool return prices in paise instead of rupees. Nothing crashed, so a normal agent just reports it. "
              "QueryMend is about catching exactly this kind of failure.")
 
 

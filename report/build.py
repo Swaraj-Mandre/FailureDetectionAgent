@@ -1,4 +1,4 @@
-"""Turn the report HTML and the SVG diagram into the PDF and PNG we hand in.
+"""Turn the report HTML into the PDF we hand in.
 
 The slides are built separately: python presentation/build_deck.py --pdf
 
@@ -6,7 +6,7 @@ The slides are built separately: python presentation/build_deck.py --pdf
 
 Uses the headless mode of Microsoft Edge, which ships with Windows, so nothing
 extra is installed. Edge gets a throwaway profile folder inside the repo for each file,
-deleted right after.
+deleted right after. The diagrams are rendered by report/diagrams/render_diagrams.py.
 """
 import shutil
 import subprocess
@@ -18,8 +18,6 @@ REPO_DIR = Path(__file__).resolve().parent.parent
 EDGE = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
 
 JOBS = [
-    ("png", REPO_DIR / "report" / "diagrams" / "architecture.svg",
-     REPO_DIR / "report" / "diagrams" / "architecture.png", "1200,640"),
     ("pdf", REPO_DIR / "report" / "report.html", REPO_DIR / "report" / "report.pdf", None),
 ]
 
