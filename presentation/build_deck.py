@@ -7,7 +7,7 @@ Needs python-pptx (pip install python-pptx), only for building the slides; the
 agents do not use it. Fonts are Bahnschrift and Segoe UI, which ship with
 Windows 10 and 11, so the deck looks the same on any college PC.
 
-Diagrams come from report/diagrams/drawio/ (exported from draw.io). A missing
+Diagrams come from report/diagrams/png/ (python report/diagrams/render_diagrams.py). A missing
 diagram leaves a dashed frame with its file name, so the deck always builds.
 """
 import subprocess
@@ -23,7 +23,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
 REPO_DIR = Path(__file__).resolve().parent.parent
-DIAGRAMS = REPO_DIR / "report" / "diagrams" / "drawio"
+DIAGRAMS = REPO_DIR / "report" / "diagrams" / "png"
 OUT = REPO_DIR / "presentation" / "QueryMend_slides.pptx"
 
 # one colour per role, the same in the diagrams, the slides and the report
@@ -135,7 +135,7 @@ def diagram(slide, name, x, y, w, h):
     path = DIAGRAMS / name
     if not path.exists():
         box(slide, x, y, w, h, fill=PAPER, line=SLATE, dash=True)
-        text(slide, x, y, w, h, [f"Diagram goes here", [(f"report/diagrams/drawio/{name}", {"font": MONO, "size": 13})]],
+        text(slide, x, y, w, h, [f"Diagram goes here", [(f"report/diagrams/png/{name}", {"font": MONO, "size": 13})]],
              size=16, colour=SLATE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
         return
     with Image.open(path) as image:
@@ -426,15 +426,16 @@ def main():
     for build in (slide_hook, slide_problem, slide_intro, slide_pba1, slide_team, slide_real_run,
                   slide_memory, slide_containment, slide_numbers, slide_demo, slide_next):
         build(prs)
-    prs.save(OUT)
-    print(f"{OUT.relative_to(REPO_DIR)}  ({len(prs.slides)} slides)")
+    out = next((Path(a.split('=', 1)[1]) for a in sys.argv if a.startswith('--out=')), OUT)
+    prs.save(out)
+    print(f"{out}  ({len(prs.slides)} slides)")
     missing = [n for n in ("01_pba1_agent.png", "02_pba2_team.png", "03_memory_rag.png", "04_containment.png",
                            "05_one_recovery.png") if not (DIAGRAMS / n).exists()]
     if missing:
         print("waiting for diagrams:", ", ".join(missing))
     if "--pdf" in sys.argv:
-        export_pdf(OUT, OUT.with_suffix(".pdf"))
-        print(f"{OUT.with_suffix('.pdf').relative_to(REPO_DIR)}")
+        export_pdf(out, out.with_suffix(".pdf"))
+        print(out.with_suffix(".pdf"))
 
 
 if __name__ == "__main__":

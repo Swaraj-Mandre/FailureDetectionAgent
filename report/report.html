@@ -115,7 +115,7 @@
 
   <h2><span class="num">2</span>PBA 1: one agent that notices its tool failing <span class="sub">Units 1 and 2</span></h2>
   <div class="split">
-    <div class="fig" style="height:84mm" data-src="diagrams/drawio/01_pba1_agent.png">diagram 01</div>
+    <div class="fig" style="height:84mm" data-src="diagrams/png/01_pba1_agent.png">diagram 01</div>
     <div>
       <p>One tool, <code>run_sql</code>: read-only, one SELECT at a time, and a clear <code>Error:</code> message on bad input (write words, several statements, unknown columns). <code>route_after_tools</code> checks every tool result of the turn and sends failures to <code>handle_failure</code>.</p>
       <div class="box b-red"><h3>What the slide version did</h3><p>Sent one generic message for every failure. The agent retried a dead database, sent the same broken query 7 times, and once told a user to run a DELETE by hand.</p></div>
@@ -128,7 +128,7 @@
 <!-- ======================= PAGE 2 ======================= -->
 <section class="page">
   <h2 style="margin-top:0"><span class="num">3</span>PBA 2: Executor, Monitor and Recovery <span class="sub">Units 3 and 4</span></h2>
-  <div class="fig" style="height:62mm" data-src="diagrams/drawio/02_pba2_team.png">diagram 02</div>
+  <div class="fig" style="height:62mm" data-src="diagrams/png/02_pba2_team.png">diagram 02</div>
   <p class="caption">One LangGraph with one shared message history. Red paths are failures, green is Recovery's retry. The retry budget (3 per question) is the hop limit. Colours match the roles below.</p>
 
   <h2><span class="num">4</span>Roles <span class="sub">U4-1</span></h2>
@@ -144,7 +144,7 @@
 
   <h2><span class="num">5</span>Memory and RAG <span class="sub">Unit 3</span></h2>
   <div class="split" style="grid-template-columns: 1fr 1fr">
-    <div class="fig" style="height:48mm" data-src="diagrams/drawio/03_memory_rag.png">diagram 03</div>
+    <div class="fig" style="height:48mm" data-src="diagrams/png/03_memory_rag.png">diagram 03</div>
     <div>
       <p><b style="color:var(--blue)">Checkpointer</b> (SQLite, per <code>thread_id</code>): follow-ups work and a crashed run resumes from its last step.</p>
       <p><b style="color:var(--blue)">Store</b> (SQLite, namespace <code>(user_id, "glossary")</code>): a user's own words survive a restart.</p>
@@ -210,7 +210,7 @@
   </div>
   <h2><span class="num">9</span>Measured challenge: error propagation <span class="sub">U4-4, 10 two-turn runs per mode</span></h2>
   <div class="split" style="grid-template-columns: 1.05fr 0.95fr">
-    <div class="fig" style="height:60mm" data-src="diagrams/drawio/04_containment.png">diagram 04</div>
+    <div class="fig" style="height:60mm" data-src="diagrams/png/04_containment.png">diagram 04</div>
     <div>
       <p>One result is corrupted (x100) in turn 1. Turn 2 asks "How does that compare with August 2026?" in the same thread, so it reuses whatever turn 1 left in the shared history.</p>
       <table>
@@ -256,7 +256,7 @@
 </section>
 
 <script>
-  // diagrams come from draw.io; until a file exists, show a labelled empty frame
+  // diagrams come from render_diagrams.py; until a file exists, show a labelled empty frame
   document.querySelectorAll('.fig[data-src]').forEach(function (frame) {
     var label = frame.textContent.trim();
     var img = new Image();

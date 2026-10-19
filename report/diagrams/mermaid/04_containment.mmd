@@ -1,27 +1,26 @@
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Segoe UI", "fontSize": "16px", "lineColor": "#475569", "primaryTextColor": "#14213D", "edgeLabelBackground": "#FFFFFF"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Segoe UI", "fontSize": "18px", "lineColor": "#475569", "primaryTextColor": "#14213D", "edgeLabelBackground": "#FFFFFF"}}}%%
 flowchart LR
     subgraph OFF["Monitor OFF"]
-        direction TB
         A1["Tool returns Rs 2,40,30,020<br/>100 times too big, no error"]
-        A2["Saved in the shared history"]
-        A3["Turn 1 answer repeats it"]
+        A2["Saved in the<br/>shared history"]
+        A3["Turn 1 answer<br/>repeats it"]
         A4["<b>Turn 2 builds on it</b><br/>wrong in 10 of 10 runs"]
         A1 --> A2
         A2 --> A3
         A3 --> A4
     end
     subgraph ON["Monitor ON"]
-        direction TB
-        B1["Tool returns the same bad result"]
-        B2{"Monitor: above all-time<br/>gross sales?"}
-        B3["<b>Quarantined</b><br/>swapped for a note, same message id"]
-        B4["Recovery: run it again"]
-        B5["<b>Turn 1 and turn 2 correct</b><br/>in 10 of 10 runs"]
+        B1["Tool returns the<br/>same bad result"]
+        B2{"Above all-time<br/>gross sales?"}
+        B3["<b>Quarantined</b><br/>swapped for a note"]
+        B4["Recovery:<br/>run it again"]
+        B5["<b>Turn 1 and 2 correct</b><br/>in 10 of 10 runs"]
         B1 --> B2
         B2 -->|yes| B3
         B3 --> B4
         B4 --> B5
     end
+    OFF ~~~ ON
 
     classDef bad fill:#FFE4E6,stroke:#E11D48,stroke-width:2px,color:#14213D
     classDef check fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#14213D

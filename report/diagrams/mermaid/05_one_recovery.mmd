@@ -1,24 +1,29 @@
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Segoe UI", "fontSize": "15px", "primaryTextColor": "#14213D", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#F8FAFC", "actorBorder": "#14213D", "noteBkgColor": "#FEF3C7", "noteBorderColor": "#D97706"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Segoe UI", "fontSize": "16px", "messageFontSize": "17px", "actorFontSize": "18px", "primaryTextColor": "#14213D", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#F8FAFC", "actorBorder": "#14213D", "noteBkgColor": "#FEF3C7", "noteBorderColor": "#D97706"}}}%%
 sequenceDiagram
     autonumber
     actor U as User
+    box rgb(219,234,254) LLM
     participant E as Executor
+    end
+    box rgb(241,245,249) Tool
     participant T as run_sql
+    end
+    box rgb(254,243,199) Rules
     participant M as Monitor
+    end
+    box rgb(209,250,229) Rules + RAG
     participant R as Recovery
-    U->>E: Show the order_id and total of the 5 most recent orders
-    E->>T: SELECT order_id, SUM(...) with no table alias
-    T-->>M: Error: ambiguous column name: order_id
-    M->>R: failure, type schema
-    R->>R: retrieve 3 sections from the error guide
-    R->>E: give every table an alias (2 retries left)
-    E->>T: SELECT o.order_id, SUM(...) with no GROUP BY
-    T-->>M: 1 row, runs without error
-    Note over M: SUM next to a plain column and no GROUP BY: quarantined
-    M->>R: failure, type no_group_by
-    R->>E: add GROUP BY o.order_id (1 retry left)
+    end
+    U->>E: 5 most recent orders and their totals
+    E->>T: SELECT order_id, SUM(...) with no alias
+    T-->>M: Error: ambiguous column order_id
+    M->>R: failure: schema
+    R->>E: guide advice: alias every table
+    E->>T: SELECT o.order_id, SUM(...) no GROUP BY
+    T-->>M: 1 row, no error
+    Note over M: SUM next to a plain column, no GROUP BY: quarantined
+    M->>R: failure: no_group_by
+    R->>E: add GROUP BY o.order_id
     E->>T: corrected query
-    T-->>M: 5 rows
-    M->>E: result looks fine
-    E->>M: final answer
-    M->>U: answer matches the rows
+    T-->>M: 5 rows, look fine
+    M->>U: answer checked against the rows
