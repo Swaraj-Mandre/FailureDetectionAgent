@@ -1,6 +1,7 @@
 // The evaluation: the old single agent against the QueryMend team on the same questions.
 import { useEffect, useState } from "react";
 import { api, type Evaluation } from "../lib/api";
+import { useSettings } from "../lib/settings";
 
 const CASE_NAME: Record<string, string> = {
   clean: "A normal question",
@@ -29,6 +30,7 @@ function verdict(outcomes: Record<string, number>, runs: number) {
 export function Quality() {
   const [data, setData] = useState<Evaluation | null>(null);
   const [error, setError] = useState("");
+  const { technical } = useSettings();
   useEffect(() => { api.evaluation().then(setData).catch((e) => setError(e.message)); }, []);
 
   if (error) return <div className="page"><p className="turn-error">{error}</p></div>;
@@ -70,7 +72,7 @@ export function Quality() {
         <div className="panel-head padded"><h2>Same five questions, side by side</h2></div>
         <table className="compare">
           <thead>
-            <tr><th>Question</th><th>Single agent</th><th>QueryMend</th><th className="num">AI calls</th></tr>
+            <tr><th>Question</th><th>Single agent</th><th>QueryMend</th>{technical && <th className="num">AI calls</th>}</tr>
           </thead>
           <tbody>
             {cases.map((c) => {
@@ -82,7 +84,7 @@ export function Quality() {
                   <td>{CASE_NAME[c]}</td>
                   <td><span className={`badge ${va.ok ? "tone-recovery" : "tone-danger"}`}>{va.good}/{a.runs} {va.ok ? va.label : "right"}</span></td>
                   <td><span className={`badge ${vb.ok ? "tone-recovery" : "tone-danger"}`}>{vb.good}/{b.runs} {vb.ok ? vb.label : "right"}</span></td>
-                  <td className="num mono">{a.model_calls} → {b.model_calls}</td>
+                  {technical && <td className="num mono">{a.model_calls} → {b.model_calls}</td>}
                 </tr>
               );
             })}
@@ -108,7 +110,7 @@ export function Quality() {
 
         <section className="panel">
           <h2>Five planted failures</h2>
-          <p className="panel-sub">Each one planted {data.repeats} times. Retries are the average fixes needed.</p>
+          <p className="panel-sub">Each one planted {data.repeats} times.{technical && " The last column is the average number of fixes needed."}</p>
           <table className="mini">
             <tbody>
               {data.injections.map((i) => {
@@ -117,7 +119,7 @@ export function Quality() {
                   <tr key={i.kind}>
                     <td>{KIND_NAME[i.kind] ?? i.kind}</td>
                     <td><span className={`badge ${v.ok ? "tone-recovery" : "tone-danger"}`}>{v.ok ? v.label : `${v.good}/${i.runs}`}</span></td>
-                    <td className="num mono">{i.retries}</td>
+                    {technical && <td className="num mono">{i.retries}</td>}
                   </tr>
                 );
               })}

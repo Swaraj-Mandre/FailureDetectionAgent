@@ -1,6 +1,6 @@
 // The main page: ask a question, watch the team work, answer the approval, read the checked answer.
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, stream, type LiveEvent, type Turn } from "../lib/api";
 import { useSettings } from "../lib/settings";
 import { month } from "../lib/words";
@@ -8,6 +8,7 @@ import { Composer } from "../components/Composer";
 import { TestLab } from "../components/TestLab";
 import { TurnView } from "../components/TurnView";
 import { RoleMark } from "../components/Bits";
+import type { TryIt } from "./Tour";
 
 export function Ask() {
   const { id } = useParams();
@@ -18,6 +19,8 @@ export function Ask() {
   const [busy, setBusy] = useState(false);
   const threadRef = useRef<string | undefined>(id);
   const endRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const handled = useRef<string | null>(null);
 
   // Opening a past conversation loads its turns; a new question starts empty.
   useEffect(() => {
@@ -63,11 +66,27 @@ export function Ask() {
     }
   };
 
-  const ask = (question: string) => {
-    setTurns((all) => [...all, { question, fault, monitor_on: monitorOn, steps: [], queries: [], results: [], running: true }]);
-    setFault(null);   // a planted failure applies to one question
-    run("/api/ask", { thread_id: threadRef.current, question, user_id: userId, monitor_on: monitorOn, fault });
+  // A planted failure applies to one question. A tour demo passes its own fault and Monitor setting.
+  const ask = (question: string, demo?: { fault: string | null; monitorOn: boolean }) => {
+    const f = demo ? demo.fault : fault;
+    const m = demo ? demo.monitorOn : monitorOn;
+    setTurns((all) => [...all, { question, fault: f, monitor_on: m, steps: [], queries: [], results: [], running: true }]);
+    if (!demo) setFault(null);
+    return run("/api/ask", { thread_id: threadRef.current, question, user_id: userId, monitor_on: m, fault: f });
   };
+
+  // "Try it" on the project tour lands here with its questions, which are asked one after another.
+  useEffect(() => {
+    const demo = (location.state as { tryIt?: TryIt } | null)?.tryIt;
+    if (!demo || handled.current === location.key) return;
+    handled.current = location.key;
+    (async () => {
+      for (const [i, question] of demo.questions.entries()) {
+        await ask(question, { fault: i === 0 ? demo.fault ?? null : null, monitorOn: demo.monitorOn ?? true });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   const decide = (decision: "approve" | "reject") => {
     update((t) => ({ ...t, approval: undefined, running: true }));
@@ -89,7 +108,7 @@ export function Ask() {
 
       <div className="thread">
         {turns.length === 0 ? (
-          <Welcome onPick={ask} examples={setup?.examples ?? []} />
+          <Welcome onPick={(q) => ask(q)} examples={setup?.examples ?? []} />
         ) : (
           turns.map((turn, i) => (
             <TurnView key={i} turn={turn} faultName={faultName(turn.fault) ?? undefined}
@@ -99,7 +118,7 @@ export function Ask() {
         <div ref={endRef} />
       </div>
 
-      <Composer busy={busy || turns.some((t) => t.approval)} onAsk={ask} />
+      <Composer busy={busy || turns.some((t) => t.approval)} onAsk={(q) => ask(q)} />
     </div>
   );
 }

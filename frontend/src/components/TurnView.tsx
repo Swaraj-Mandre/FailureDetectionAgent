@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ChevronDown, EyeOff, Eye, FlaskConical, ShieldOff } from "lucide-react";
 import type { Preview, Role, Step, Turn } from "../lib/api";
 import { describe, plural, ROLE_JOB, ROLE_NAME } from "../lib/words";
+import { useSettings } from "../lib/settings";
 import { DataPreview, OutcomeBadge, RoleMark, SqlBlock } from "./Bits";
 
 interface Props {
@@ -16,6 +17,7 @@ export function TurnView({ turn, faultName, retryBudget, onDecide }: Props) {
   // open for a live run, closed for history unless the link ends in #how
   const [showTrail, setShowTrail] = useState(!!turn.running || window.location.hash === "#how");
   const trailOpen = turn.running || !!turn.approval || showTrail;
+  const { technical } = useSettings();
 
   return (
     <article className="turn">
@@ -52,7 +54,9 @@ export function TurnView({ turn, faultName, retryBudget, onDecide }: Props) {
               {turn.outcome && <OutcomeBadge outcome={turn.outcome} />}
               {turn.stats && (
                 <span className="answer-stats">
-                  {plural(turn.stats.tool_calls, "query", "queries")} · {turn.stats.retries} of {retryBudget} retries · {turn.stats.seconds} s
+                  {technical
+                    ? `${plural(turn.stats.tool_calls, "query", "queries")} · ${turn.stats.retries} of ${retryBudget} retries · ${turn.stats.seconds} s`
+                    : `${turn.stats.retries ? `fixed ${plural(turn.stats.retries, "time")}, ` : ""}${turn.stats.seconds} seconds`}
                 </span>
               )}
             </div>
@@ -69,7 +73,7 @@ export function TurnView({ turn, faultName, retryBudget, onDecide }: Props) {
             How QueryMend got this answer
           </button>
         )}
-        {trailOpen && <Trail turn={turn} />}
+        {trailOpen && <Trail turn={turn} technical={technical} />}
       </div>
     </article>
   );
@@ -94,7 +98,7 @@ function Pipeline({ steps }: { steps: Step[] }) {
 }
 
 /** Every step in order. Each query the Executor ran sits under the step that ran it. */
-function Trail({ turn }: { turn: Turn }) {
+function Trail({ turn, technical }: { turn: Turn; technical: boolean }) {
   let query = 0;
   const items = turn.steps.map((step, i) => {
     const ran = step.role === "executor" && step.text.startsWith("calls");
@@ -118,9 +122,9 @@ function Trail({ turn }: { turn: Turn }) {
                 <span className={`trail-role ink-${step.role}`}>{ROLE_NAME[step.role]}</span>
                 {title}
               </p>
-              {detail && <p className="trail-detail">{detail}</p>}
-              {sql && <SqlBlock query={sql} />}
-              {result && <DataPreview preview={result} struck={blocked} />}
+              {technical && detail && <p className="trail-detail">{detail}</p>}
+              {technical && sql && <SqlBlock query={sql} />}
+              {technical && result && <DataPreview preview={result} struck={blocked} />}
             </div>
           </li>
         );

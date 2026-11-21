@@ -3,12 +3,14 @@ import { Fragment, useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { api, type Failures as Data } from "../lib/api";
 import { action, FAILURE_NAME, when } from "../lib/words";
+import { useSettings } from "../lib/settings";
 
 export function Failures() {
   const [data, setData] = useState<Data | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const { technical } = useSettings();
 
   useEffect(() => { api.failures().then(setData).catch((e) => setError(e.message)); }, []);
 
@@ -50,19 +52,19 @@ export function Failures() {
           <section className="panel flush">
             <table className="log">
               <thead>
-                <tr><th>When</th><th>Problem</th><th>What the team did</th><th className="num">Retries left</th><th /></tr>
+                <tr><th>When</th><th>Problem</th><th>What the team did</th>{technical && <th className="num">Retries left</th>}{technical && <th />}</tr>
               </thead>
               <tbody>
                 {rows.map((r, i) => (
                   <Fragment key={i}>
-                    <tr className={open === i ? "open" : ""} onClick={() => setOpen(open === i ? null : i)}>
+                    <tr className={`${open === i ? "open" : ""} ${technical ? "clickable" : ""}`} onClick={() => technical && setOpen(open === i ? null : i)}>
                       <td className="nowrap">{when(r.logged_at)}</td>
                       <td><span className={`badge ${r.failure_type === "unsafe" || r.failure_type === "unavailable" ? "tone-danger" : "tone-monitor"}`}>{FAILURE_NAME[r.failure_type] ?? r.failure_type}</span></td>
                       <td>{action(r.action)}</td>
-                      <td className="num">{r.retries_left}</td>
-                      <td><ChevronDown size={15} className={open === i ? "flip" : ""} /></td>
+                      {technical && <td className="num">{r.retries_left}</td>}
+                      {technical && <td><ChevronDown size={15} className={open === i ? "flip" : ""} /></td>}
                     </tr>
-                    {open === i && (
+                    {technical && open === i && (
                       <tr className="log-detail">
                         <td colSpan={5}>
                           {r.error && <p><strong>What went wrong:</strong> {r.error}</p>}

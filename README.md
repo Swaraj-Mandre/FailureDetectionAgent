@@ -57,7 +57,13 @@ The real figure was **Rs 2,40,300**. The tool had read prices in paise (we injec
 <td width="50%"><img src="docs/welcome.png" alt="The QueryMend start page"><br><sub><b>Ask.</b> Plain English questions about the shop, with a Test lab to plant failures on purpose.</sub></td>
 <td width="50%"><img src="docs/quality.png" alt="The quality report page"><br><sub><b>Quality report.</b> The single agent against the team on the same questions.</sub></td>
 </tr>
+<tr>
+<td width="50%"><img src="docs/tour.png" alt="The project tour page"><br><sub><b>Project tour.</b> Each part of the project with who built it, a one-click live demo and the files behind it.</sub></td>
+<td width="50%"><img src="docs/failures.png" alt="The caught failures page"><br><sub><b>Caught failures.</b> Every problem the Monitor stopped, and what the team did about it.</sub></td>
+</tr>
 </table>
+
+The app is plain by default, so anyone can follow it. The **Technical details** switch in the sidebar adds the SQL, the raw data behind each step and the internal checks.
 
 ---
 
@@ -181,7 +187,7 @@ python ta2/seed_store.py
 python ta2/server.py
 ```
 
-Then open http://127.0.0.1:8000. Ask anything, watch each agent work live, plant a failure from the Test lab, approve or hide personal data, and browse the caught failures, the quality report and each store's own words.
+Then open http://127.0.0.1:8000. Ask anything, watch each agent work live, plant a failure from the Test lab, approve or hide personal data, and browse the caught failures, the quality report and each store's own words. The **Project tour** page walks through the project part by part, each with a button that runs its live demo.
 
 <details>
 <summary><b>How the app is built</b></summary>

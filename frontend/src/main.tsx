@@ -15,6 +15,7 @@ import { Ask } from "./pages/Ask";
 import { Failures } from "./pages/Failures";
 import { Quality } from "./pages/Quality";
 import { Glossary } from "./pages/Glossary";
+import { Tour } from "./pages/Tour";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -29,6 +30,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/failures" element={<Failures />} />
               <Route path="/quality" element={<Quality />} />
               <Route path="/glossary" element={<Glossary />} />
+              <Route path="/tour" element={<Tour />} />
               <Route path="*" element={<Ask />} />
             </Routes>
           </main>

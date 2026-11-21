@@ -4,7 +4,7 @@
    - brand and text (navy, slate),
    - the four roles and their status (Executor blue, Monitor amber, Recovery green, Person purple,
      failure red), the same colours as the report and the slides.
-   Nothing is coloured for decoration. */
+   Nothing is coloured for decoration. All colours are muted on purpose: no bright or neon tones. */
 
 :root {
   /* surfaces */
@@ -24,19 +24,19 @@
   --brand: #14213d;
   --brand-hover: #22345c;
   --brand-ink: #ffffff;
-  --focus: #2563eb;
+  --focus: #3b5b8c;
 
   /* roles: strong colour for marks and text, soft colour for fills */
-  --executor: #2563eb;
-  --executor-soft: #e8effd;
-  --monitor: #b45309;
-  --monitor-soft: #fdf3e2;
-  --recovery: #047857;
-  --recovery-soft: #e3f5ee;
-  --person: #6d28d9;
-  --person-soft: #efe9fc;
-  --danger: #be123c;
-  --danger-soft: #fde8ec;
+  --executor: #3b5b8c;
+  --executor-soft: #edf1f7;
+  --monitor: #85621a;
+  --monitor-soft: #f5f0e4;
+  --recovery: #36705c;
+  --recovery-soft: #e9f1ed;
+  --person: #5f4b80;
+  --person-soft: #efecf5;
+  --danger: #9e3b3b;
+  --danger-soft: #f6eceb;
 
   /* type: Figtree for everything, Plex Mono only for SQL and figures */
   --font: "Figtree", "Segoe UI", system-ui, sans-serif;
