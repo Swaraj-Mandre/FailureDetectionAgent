@@ -334,7 +334,7 @@ def slide_containment(prs):
     diagram(s, "04_containment.png", MARGIN, 1.85, 7.3, 4.95)
     stat(s, 8.3, 1.95, 4.33, 2.15, "10 / 10", "Monitor off: the wrong number was carried into the follow-up answer.", RED, RED_L, value_size=60)
     stat(s, 8.3, 4.3, 4.33, 2.15, "0 / 10", "Monitor on: quarantined before any agent could read it.", GREEN, GREEN_L, value_size=60)
-    text(s, 8.3, 6.55, 4.33, 0.3, [[("Cost: ", {"font": BODY_BOLD, "colour": AMBER}), ("2 extra model calls, about 2 seconds.", {})]], size=14)
+    text(s, 8.3, 6.55, 4.33, 0.3, [[("Cost: ", {"font": BODY_BOLD, "colour": AMBER}), ("1 extra model call, under half a second.", {})]], size=14)
     footer(s, 8)
     notes(s, "One corrupted result in turn 1, then the follow-up: how does that compare with August? "
              "Monitor off: the bad value sits in the shared history, and 10 out of 10 follow-ups repeat it. "

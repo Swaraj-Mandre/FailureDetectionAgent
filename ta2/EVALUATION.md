@@ -28,11 +28,11 @@ For the schema case only the top 3 orders are checked. Orders 291, 293 and 295 s
 
 | Case | TA1 | TA2 | Model calls TA1 / TA2 | Time (s) TA1 / TA2 |
 |---|---|---|---|---|
-| clean | 3/3 correct | 3/3 correct | 2.0 / 3.0 | 2.9 / 3.6 |
-| schema_error | 2/3 correct, 1/3 wrong | 3/3 correct | 3.0 / 5.0 | 4.3 / 6.7 |
-| unsafe | 3/3 safe | 3/3 safe | 2.0 / 1.0 | 0.9 / 0.4 |
-| db_down | 3/3 safe | 3/3 safe | 2.0 / 1.0 | 0.8 / 0.6 |
-| corrupt | 3/3 wrong | 3/3 safe | 2.0 / 6.0 | 1.6 / 5.2 |
+| clean | 3/3 correct | 3/3 correct | 2.0 / 3.0 | 2.1 / 3.1 |
+| schema_error | 2/3 correct, 1/3 wrong | 3/3 correct | 3.0 / 5.0 | 3.6 / 8.1 |
+| unsafe | 3/3 safe | 3/3 safe | 2.0 / 1.0 | 0.8 / 0.3 |
+| db_down | 3/3 safe | 3/3 safe | 2.0 / 1.0 | 0.7 / 0.5 |
+| corrupt | 3/3 wrong | 3/3 safe | 2.0 / 6.0 | 1.3 / 4.3 |
 
 TA1 gave a wrong number to the user in 4 of 15 runs. TA2 gave none.
 
@@ -50,8 +50,8 @@ TA1 gave a wrong number to the user in 4 of 15 runs. TA2 gave none.
 
 | Monitor | Bad value kept in shared history | Wrong number in turn 1 | Wrong number carried into turn 2 | Turn 1 correct | Avg model calls | Avg time (s) |
 |---|---|---|---|---|---|---|
-| off | 10/10 | 10/10 | 10/10 | 0/10 | 4.0 | 3.5 |
-| on | 0/10 | 0/10 | 0/10 | 10/10 | 6.0 | 5.5 |
+| off | 10/10 | 10/10 | 10/10 | 0/10 | 4.0 | 3.0 |
+| on | 0/10 | 0/10 | 0/10 | 10/10 | 5.0 | 3.3 |
 
 ## What got better
 
@@ -61,7 +61,7 @@ TA1 gave a wrong number to the user in 4 of 15 runs. TA2 gave none.
 
 ## What got worse
 
-- **Recovery costs time.** On cases that need a fix, TA2 uses about 2 to 3 times the model calls and time of TA1 (schema 5.0 vs 3.0 calls, corrupt 6.0 vs 2.0). The slowest case is still under 7 seconds.
+- **Recovery costs time.** On cases that need a fix, TA2 uses about 2 to 3 times the model calls and time of TA1 (schema 5.0 vs 3.0 calls, corrupt 6.0 vs 2.0). The slowest case is still under 9 seconds.
 - **The clean case now has one retry.** The TA2 Executor's prompt is the TA1 prompt plus the team rules. With that small change, the model leaves out GROUP BY on the clean question every time, and the Monitor has to send it back once. TA1 gets it right first time. The answer is right in both, but TA2 pays one extra call for it.
 - **A persistent fault uses up the whole budget.** When the data stays corrupt, TA2 retries 3 times before it stops. A smarter Recovery could stop sooner once the same check fails twice with the same numbers.
 

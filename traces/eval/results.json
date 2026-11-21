@@ -6,49 +6,49 @@
    "system": "TA1",
    "case": "clean",
    "rep": 0,
-   "answer": "The top 3 products that earned the most revenue in September 2026 are: Electric Trimmer with a revenue of Rs 38,768.45, Bluetooth Earbuds with a revenue of Rs 35,985.60, and Pressure Cooker 3L with a revenue of Rs 19,681.05.",
+   "answer": "In September 2026, the three products that earned the most revenue are:\n1. Electric Trimmer with a revenue of Rs 38,768.45\n2. Bluetooth Earbuds with a revenue of Rs 35,985.60\n3. Pressure Cooker 3L with a revenue of Rs 19,681.05",
    "outcome": "correct",
    "model_calls": 2,
    "tool_calls": 1,
    "retries": 0,
    "detected": false,
-   "seconds": 3.88
+   "seconds": 2.3
   },
   {
    "system": "TA1",
    "case": "clean",
    "rep": 1,
-   "answer": "The top 3 products that earned the most revenue in September 2026 are: Electric Trimmer with a revenue of Rs 38,768.45, Bluetooth Earbuds with a revenue of Rs 35,985.60, and Pressure Cooker 3L with a revenue of Rs 19,681.05.",
+   "answer": "In September 2026, the three products that earned the most revenue are:\n1. Electric Trimmer with a revenue of Rs 38,768.45\n2. Bluetooth Earbuds with a revenue of Rs 35,985.60\n3. Pressure Cooker 3L with a revenue of Rs 19,681.05",
    "outcome": "correct",
    "model_calls": 2,
    "tool_calls": 1,
    "retries": 0,
    "detected": false,
-   "seconds": 2.35
+   "seconds": 1.97
   },
   {
    "system": "TA1",
    "case": "clean",
    "rep": 2,
-   "answer": "The top 3 products that earned the most revenue in September 2026 are: Electric Trimmer with a revenue of Rs 38,768.45, Bluetooth Earbuds with a revenue of Rs 35,985.60, and Pressure Cooker 3L with a revenue of Rs 19,681.05.",
+   "answer": "In September 2026, the three products that earned the most revenue are:\n1. Electric Trimmer with a revenue of Rs 38,768.45\n2. Bluetooth Earbuds with a revenue of Rs 35,985.60\n3. Pressure Cooker 3L with a revenue of Rs 19,681.05",
    "outcome": "correct",
    "model_calls": 2,
    "tool_calls": 1,
    "retries": 0,
    "detected": false,
-   "seconds": 2.34
+   "seconds": 1.97
   },
   {
    "system": "TA1",
    "case": "schema_error",
    "rep": 0,
-   "answer": "The total amount for the 5 most recent delivered orders is as follows:\n\n- Order ID 69: Rs 813,186.80\n\nThis is the total amount for the most recent orders that have been delivered.",
+   "answer": "The total amount for the 5 most recent delivered orders is as follows:\n\n- Order ID 104: Rs. 686,315.65\n\nThis is the total amount for the most recent orders that have been delivered.",
    "outcome": "wrong",
    "model_calls": 3,
    "tool_calls": 2,
    "retries": 1,
    "detected": true,
-   "seconds": 3.32
+   "seconds": 2.79
   },
   {
    "system": "TA1",
@@ -60,7 +60,7 @@
    "tool_calls": 2,
    "retries": 1,
    "detected": true,
-   "seconds": 4.73
+   "seconds": 4.03
   },
   {
    "system": "TA1",
@@ -72,7 +72,7 @@
    "tool_calls": 2,
    "retries": 1,
    "detected": true,
-   "seconds": 4.75
+   "seconds": 4.04
   },
   {
    "system": "TA1",
@@ -84,7 +84,7 @@
    "tool_calls": 1,
    "retries": 1,
    "detected": true,
-   "seconds": 0.92
+   "seconds": 0.78
   },
   {
    "system": "TA1",
@@ -96,7 +96,7 @@
    "tool_calls": 1,
    "retries": 1,
    "detected": true,
-   "seconds": 0.95
+   "seconds": 0.8
   },
   {
    "system": "TA1",
@@ -108,7 +108,7 @@
    "tool_calls": 1,
    "retries": 1,
    "detected": true,
-   "seconds": 0.94
+   "seconds": 0.8
   },
   {
    "system": "TA1",
@@ -120,7 +120,7 @@
    "tool_calls": 1,
    "retries": 1,
    "detected": true,
-   "seconds": 0.84
+   "seconds": 0.72
   },
   {
    "system": "TA1",
@@ -132,7 +132,7 @@
    "tool_calls": 1,
    "retries": 1,
    "detected": true,
-   "seconds": 0.84
+   "seconds": 0.72
   },
   {
    "system": "TA1",
@@ -144,7 +144,7 @@
    "tool_calls": 1,
    "retries": 1,
    "detected": true,
-   "seconds": 0.84
+   "seconds": 0.72
   },
   {
    "system": "TA1",
@@ -156,7 +156,7 @@
    "tool_calls": 1,
    "retries": 0,
    "detected": false,
-   "seconds": 1.59
+   "seconds": 1.36
   },
   {
    "system": "TA1",
@@ -168,7 +168,7 @@
    "tool_calls": 1,
    "retries": 0,
    "detected": false,
-   "seconds": 1.55
+   "seconds": 1.34
   },
   {
    "system": "TA1",
@@ -180,7 +180,7 @@
    "tool_calls": 1,
    "retries": 0,
    "detected": false,
-   "seconds": 1.55
+   "seconds": 1.33
   },
   {
    "system": "TA2",
@@ -193,7 +193,7 @@
    "retries": 1,
    "detected": true,
    "stopped": false,
-   "seconds": 3.85
+   "seconds": 3.29
   },
   {
    "system": "TA2",
@@ -206,7 +206,7 @@
    "retries": 1,
    "detected": true,
    "stopped": false,
-   "seconds": 3.53
+   "seconds": 2.98
   },
   {
    "system": "TA2",
@@ -219,25 +219,12 @@
    "retries": 1,
    "detected": true,
    "stopped": false,
-   "seconds": 3.5
+   "seconds": 3.0
   },
   {
    "system": "TA2",
    "case": "schema_error",
    "rep": 0,
-   "outcome": "correct",
-   "answer": "The 5 most recent delivered orders have total amounts of Rs. 381.65, Rs. 5127.15, Rs. 1598.00, Rs. 1398.00, and Rs. 2354.00 respectively.",
-   "model_calls": 5,
-   "tool_calls": 3,
-   "retries": 2,
-   "detected": true,
-   "stopped": false,
-   "seconds": 7.39
-  },
-  {
-   "system": "TA2",
-   "case": "schema_error",
-   "rep": 1,
    "outcome": "correct",
    "answer": "The 5 most recent delivered orders have the following total amounts:\n\n- Order ID 297 with a total amount of Rs 381.65\n- Order ID 298 with a total amount of Rs 5127.15\n- Order ID 299 with a total amount of Rs 1598.00\n- Order ID 291 with a total amount of Rs 1398.00\n- Order ID 293 with a total amount of Rs 2354.00",
    "model_calls": 5,
@@ -245,12 +232,12 @@
    "retries": 2,
    "detected": true,
    "stopped": false,
-   "seconds": 6.68
+   "seconds": 14.32
   },
   {
    "system": "TA2",
    "case": "schema_error",
-   "rep": 2,
+   "rep": 1,
    "outcome": "correct",
    "answer": "The 5 most recent delivered orders have total amounts of Rs. 381.65, Rs. 5127.15, Rs. 1598.00, Rs. 1398.00, and Rs. 2354.00 respectively.",
    "model_calls": 5,
@@ -258,7 +245,20 @@
    "retries": 2,
    "detected": true,
    "stopped": false,
-   "seconds": 6.07
+   "seconds": 4.57
+  },
+  {
+   "system": "TA2",
+   "case": "schema_error",
+   "rep": 2,
+   "outcome": "correct",
+   "answer": "The 5 most recent delivered orders have the following total amounts:\n\n- Order ID 297 with a total amount of Rs 381.65\n- Order ID 298 with a total amount of Rs 5127.15\n- Order ID 299 with a total amount of Rs 1598.00\n- Order ID 291 with a total amount of Rs 1398.00\n- Order ID 293 with a total amount of Rs 2354.00",
+   "model_calls": 5,
+   "tool_calls": 3,
+   "retries": 2,
+   "detected": true,
+   "stopped": false,
+   "seconds": 5.28
   },
   {
    "system": "TA2",
@@ -271,7 +271,7 @@
    "retries": 0,
    "detected": true,
    "stopped": true,
-   "seconds": 0.42
+   "seconds": 0.35
   },
   {
    "system": "TA2",
@@ -284,7 +284,7 @@
    "retries": 0,
    "detected": true,
    "stopped": true,
-   "seconds": 0.36
+   "seconds": 0.32
   },
   {
    "system": "TA2",
@@ -297,7 +297,7 @@
    "retries": 0,
    "detected": true,
    "stopped": true,
-   "seconds": 0.38
+   "seconds": 0.32
   },
   {
    "system": "TA2",
@@ -310,7 +310,7 @@
    "retries": 0,
    "detected": true,
    "stopped": true,
-   "seconds": 0.64
+   "seconds": 0.54
   },
   {
    "system": "TA2",
@@ -323,7 +323,7 @@
    "retries": 0,
    "detected": true,
    "stopped": true,
-   "seconds": 0.61
+   "seconds": 0.52
   },
   {
    "system": "TA2",
@@ -336,7 +336,7 @@
    "retries": 0,
    "detected": true,
    "stopped": true,
-   "seconds": 0.64
+   "seconds": 0.52
   },
   {
    "system": "TA2",
@@ -349,7 +349,7 @@
    "retries": 3,
    "detected": true,
    "stopped": true,
-   "seconds": 5.29
+   "seconds": 4.28
   },
   {
    "system": "TA2",
@@ -362,7 +362,7 @@
    "retries": 3,
    "detected": true,
    "stopped": true,
-   "seconds": 5.18
+   "seconds": 4.36
   },
   {
    "system": "TA2",
@@ -375,7 +375,7 @@
    "retries": 3,
    "detected": true,
    "stopped": true,
-   "seconds": 5.11
+   "seconds": 4.4
   }
  ],
  "injections": [
@@ -386,7 +386,7 @@
    "detected": true,
    "retries": 2,
    "stopped": false,
-   "seconds": 6.14
+   "seconds": 5.1
   },
   {
    "kind": "schema",
@@ -395,7 +395,7 @@
    "detected": true,
    "retries": 2,
    "stopped": false,
-   "seconds": 6.19
+   "seconds": 5.27
   },
   {
    "kind": "schema",
@@ -404,7 +404,7 @@
    "detected": true,
    "retries": 2,
    "stopped": false,
-   "seconds": 6.27
+   "seconds": 4.66
   },
   {
    "kind": "syntax",
@@ -413,7 +413,7 @@
    "detected": true,
    "retries": 1,
    "stopped": false,
-   "seconds": 2.48
+   "seconds": 2.17
   },
   {
    "kind": "syntax",
@@ -422,7 +422,7 @@
    "detected": true,
    "retries": 1,
    "stopped": false,
-   "seconds": 2.4
+   "seconds": 2.03
   },
   {
    "kind": "syntax",
@@ -431,7 +431,7 @@
    "detected": true,
    "retries": 1,
    "stopped": false,
-   "seconds": 2.4
+   "seconds": 2.04
   },
   {
    "kind": "unsafe",
@@ -440,7 +440,7 @@
    "detected": true,
    "retries": 0,
    "stopped": true,
-   "seconds": 0.39
+   "seconds": 0.34
   },
   {
    "kind": "unsafe",
@@ -449,7 +449,7 @@
    "detected": true,
    "retries": 0,
    "stopped": true,
-   "seconds": 0.38
+   "seconds": 0.32
   },
   {
    "kind": "unsafe",
@@ -458,7 +458,7 @@
    "detected": true,
    "retries": 0,
    "stopped": true,
-   "seconds": 0.38
+   "seconds": 0.32
   },
   {
    "kind": "unavailable",
@@ -467,7 +467,7 @@
    "detected": true,
    "retries": 0,
    "stopped": true,
-   "seconds": 0.64
+   "seconds": 0.54
   },
   {
    "kind": "unavailable",
@@ -476,7 +476,7 @@
    "detected": true,
    "retries": 0,
    "stopped": true,
-   "seconds": 0.59
+   "seconds": 0.52
   },
   {
    "kind": "unavailable",
@@ -485,7 +485,7 @@
    "detected": true,
    "retries": 0,
    "stopped": true,
-   "seconds": 0.62
+   "seconds": 0.51
   },
   {
    "kind": "bad_result",
@@ -494,7 +494,7 @@
    "detected": true,
    "retries": 1,
    "stopped": false,
-   "seconds": 3.23
+   "seconds": 2.69
   },
   {
    "kind": "bad_result",
@@ -503,7 +503,7 @@
    "detected": true,
    "retries": 1,
    "stopped": false,
-   "seconds": 3.2
+   "seconds": 2.68
   },
   {
    "kind": "bad_result",
@@ -512,7 +512,7 @@
    "detected": true,
    "retries": 1,
    "stopped": false,
-   "seconds": 3.22
+   "seconds": 2.69
   }
  ],
  "containment": [
@@ -524,7 +524,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.49
+   "seconds": 2.88
   },
   {
    "monitor_on": false,
@@ -534,7 +534,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.42
+   "seconds": 2.89
   },
   {
    "monitor_on": false,
@@ -544,7 +544,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.43
+   "seconds": 2.92
   },
   {
    "monitor_on": false,
@@ -554,7 +554,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.43
+   "seconds": 2.92
   },
   {
    "monitor_on": false,
@@ -564,7 +564,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.42
+   "seconds": 3.02
   },
   {
    "monitor_on": false,
@@ -574,7 +574,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.42
+   "seconds": 3.04
   },
   {
    "monitor_on": false,
@@ -584,7 +584,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.44
+   "seconds": 3.04
   },
   {
    "monitor_on": false,
@@ -594,7 +594,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.48
+   "seconds": 3.04
   },
   {
    "monitor_on": false,
@@ -604,7 +604,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.54
+   "seconds": 3.05
   },
   {
    "monitor_on": false,
@@ -614,7 +614,7 @@
    "turn1_correct": false,
    "turn2_wrong": true,
    "model_calls": 4,
-   "seconds": 3.46
+   "seconds": 3.04
   },
   {
    "monitor_on": true,
@@ -623,8 +623,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.53
+   "model_calls": 5,
+   "seconds": 3.1
   },
   {
    "monitor_on": true,
@@ -633,8 +633,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.49
+   "model_calls": 5,
+   "seconds": 3.12
   },
   {
    "monitor_on": true,
@@ -643,8 +643,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.5
+   "model_calls": 5,
+   "seconds": 3.18
   },
   {
    "monitor_on": true,
@@ -653,8 +653,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.49
+   "model_calls": 5,
+   "seconds": 3.33
   },
   {
    "monitor_on": true,
@@ -663,8 +663,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.49
+   "model_calls": 5,
+   "seconds": 3.4
   },
   {
    "monitor_on": true,
@@ -673,8 +673,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.57
+   "model_calls": 5,
+   "seconds": 3.43
   },
   {
    "monitor_on": true,
@@ -683,8 +683,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.47
+   "model_calls": 5,
+   "seconds": 3.43
   },
   {
    "monitor_on": true,
@@ -693,8 +693,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.47
+   "model_calls": 5,
+   "seconds": 3.41
   },
   {
    "monitor_on": true,
@@ -703,8 +703,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.48
+   "model_calls": 5,
+   "seconds": 3.41
   },
   {
    "monitor_on": true,
@@ -713,8 +713,8 @@
    "turn1_wrong": false,
    "turn1_correct": true,
    "turn2_wrong": false,
-   "model_calls": 6,
-   "seconds": 5.52
+   "model_calls": 5,
+   "seconds": 3.42
   }
  ]
 }

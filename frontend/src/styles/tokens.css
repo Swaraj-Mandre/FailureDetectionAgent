@@ -1,0 +1,73 @@
+/* QueryMend design tokens. Every colour, size and gap in the app comes from here.
+
+   Colour has two jobs only:
+   - brand and text (navy, slate),
+   - the four roles and their status (Executor blue, Monitor amber, Recovery green, Person purple,
+     failure red), the same colours as the report and the slides.
+   Nothing is coloured for decoration. */
+
+:root {
+  /* surfaces */
+  --page: #f6f7f9;
+  --surface: #ffffff;
+  --surface-sunk: #f0f2f5;
+  --line: #e3e6eb;
+  --line-strong: #cfd4dc;
+
+  /* text */
+  --ink: #1b2433;
+  --ink-soft: #3b4556;
+  --muted: #5b6576;
+  --faint: #8a93a3;
+
+  /* brand */
+  --brand: #14213d;
+  --brand-hover: #22345c;
+  --brand-ink: #ffffff;
+  --focus: #2563eb;
+
+  /* roles: strong colour for marks and text, soft colour for fills */
+  --executor: #2563eb;
+  --executor-soft: #e8effd;
+  --monitor: #b45309;
+  --monitor-soft: #fdf3e2;
+  --recovery: #047857;
+  --recovery-soft: #e3f5ee;
+  --person: #6d28d9;
+  --person-soft: #efe9fc;
+  --danger: #be123c;
+  --danger-soft: #fde8ec;
+
+  /* type: Figtree for everything, Plex Mono only for SQL and figures */
+  --font: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 21px;
+  --text-2xl: 28px;
+  --text-3xl: 40px;
+
+  /* spacing, a 4 px grid */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+  --s12: 48px;
+  --s16: 64px;
+
+  /* shape: small things are sharper, containers are softer */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  --shadow-pop: 0 8px 24px rgba(20, 33, 61, 0.12);
+  --sidebar: 248px;
+  --reading: 760px;
+}

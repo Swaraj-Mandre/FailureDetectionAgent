@@ -22,6 +22,8 @@ from single_agent import classify, is_failure, latest_tool_results, sql_for
 
 EXECUTOR_RULES = """
 - Always call run_sql first, even if you think a request is not allowed. The tool decides what may run.
+- If the user asks to change data (delete, update, insert), send exactly that statement to run_sql.
+  Never turn it into a SELECT and never offer to change data yourself.
 - Messages from the monitor or recovery agent are about your last attempt. Follow their advice
   and call run_sql again. Never repeat a number the monitor has quarantined."""
 

@@ -12,7 +12,8 @@
 ![Ollama](https://img.shields.io/badge/Ollama-qwen2.5%3A3b-000000?logo=ollama&logoColor=white)
 ![Chroma](https://img.shields.io/badge/RAG-Chroma-FF6446)
 ![SQLite](https://img.shields.io/badge/Memory-SQLite-003B57?logo=sqlite&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/Web-React%20%2B%20TypeScript-3178C6?logo=react&logoColor=white)
 <br>
 ![Offline](https://img.shields.io/badge/runs-100%25%20offline-059669)
 ![No API keys](https://img.shields.io/badge/API%20keys-none-059669)
@@ -47,9 +48,16 @@ The real figure was **Rs 2,40,300**. The tool had read prices in paise (we injec
 
 ## See it work
 
-![The QueryMend demo page: an injected silent failure caught by the Monitor and fixed by Recovery](docs/demo_page.png)
+![QueryMend answering a question: the first result is blocked, fixed, checked, and shown with its data](docs/fixed_answer.png)
 
-*A corrupted result (100x too big) arrives with no error. The **Monitor** quarantines it, **Recovery** pulls advice from our error guide, the **Executor** retries, and the user only ever sees the right number. The panel shows who did what.*
+*The first query forgot a `GROUP BY`, so SQLite returned one random row with no error. The **Monitor** blocked it (struck through in red), **Recovery** said exactly what to fix, the **Executor** ran the corrected query, and only the checked answer reached the user. Every step streams into the page live.*
+
+<table>
+<tr>
+<td width="50%"><img src="docs/welcome.png" alt="The QueryMend start page"><br><sub><b>Ask.</b> Plain English questions about the shop, with a Test lab to plant failures on purpose.</sub></td>
+<td width="50%"><img src="docs/quality.png" alt="The quality report page"><br><sub><b>Quality report.</b> The single agent against the team on the same questions.</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -167,14 +175,28 @@ python data/make_shop_db.py
 python ta2/seed_store.py
 ```
 
-**Open the demo page:**
+**Start the app** (with Ollama running):
 
 ```bash
-pip install streamlit
-streamlit run ta2/app.py
+python ta2/server.py
 ```
 
-Ask anything, flip the Monitor off and on, inject a failure, approve or reject personal data.
+Then open http://127.0.0.1:8000. Ask anything, watch each agent work live, plant a failure from the Test lab, approve or hide personal data, and browse the caught failures, the quality report and each store's own words.
+
+<details>
+<summary><b>How the app is built</b></summary>
+<br>
+
+| Part | What it does |
+|:--|:--|
+| `ta2/server.py` (FastAPI) | Runs the same agent team, streams every step to the page as Server-Sent Events, pauses for approval and resumes with LangGraph's `Command(resume=...)`, serves the failure log, the evaluation results and the glossary |
+| `frontend/` (React, TypeScript, Vite) | The web app. Fonts are bundled, so it works with no internet. The built copy in `frontend/dist` is served by the Python server, so Node is only needed to change the frontend |
+
+To work on the frontend: `cd frontend`, `npm install`, `npm run dev` (opens on port 5173 and passes `/api` calls to the Python server), then `npm run build` when done.
+
+Personal data never reaches the page before a person approves it: the live data preview hides email and phone columns, and only an approved answer shows them.
+
+</details>
 
 **Or run everything in the terminal** (each demo saves its output to `traces/`):
 
@@ -207,7 +229,7 @@ python ta2/evaluate.py       # the full evaluation, about 5 minutes
 
 ### Try to break it
 
-Set `QM_FAULT` to inject a failure into the tool (the demo page has a menu for this):
+In the app, open **Test lab** and pick a failure for the next question. In the terminal, set `QM_FAULT`:
 
 | `QM_FAULT` | What happens to the tool |
 |:--|:--|
@@ -232,7 +254,8 @@ FailureDetectionAgent/
 │   ├── memory.py      checkpointer, store, glossary tool, failure log
 │   ├── rag.py         Chroma index over corpus/error_guide.md
 │   ├── evaluate.py    PBA 1 vs PBA 2, failure injection, containment
-│   └── app.py         the demo page
+│   └── server.py      the web API: live streaming, approval, logs, results
+├── frontend/        the React web app (built copy in frontend/dist)
 ├── traces/          saved output of every run: the evidence
 ├── report/          the 4-page report and its diagrams (Mermaid sources included)
 ├── presentation/    the slides
