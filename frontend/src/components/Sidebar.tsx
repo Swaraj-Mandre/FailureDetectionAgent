@@ -37,7 +37,7 @@ export function Sidebar() {
         <NavLink to="/failures"><ShieldAlert size={18} /> Caught failures</NavLink>
         <NavLink to="/quality"><BarChart3 size={18} /> Quality report</NavLink>
         <NavLink to="/glossary"><BookOpen size={18} /> Your words</NavLink>
-        <NavLink to="/tour"><Compass size={18} /> Project tour</NavLink>
+        <NavLink to="/tour"><Compass size={18} /> Guided tour</NavLink>
       </nav>
 
       <div className="recent">

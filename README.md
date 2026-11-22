@@ -58,7 +58,7 @@ The real figure was **Rs 2,40,300**. The tool had read prices in paise (we injec
 <td width="50%"><img src="docs/quality.png" alt="The quality report page"><br><sub><b>Quality report.</b> The single agent against the team on the same questions.</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/tour.png" alt="The project tour page"><br><sub><b>Project tour.</b> Each part of the project with who built it, a one-click live demo and the files behind it.</sub></td>
+<td width="50%"><img src="docs/tour.png" alt="The guided tour page"><br><sub><b>Guided tour.</b> Ten one-click live demos of what QueryMend does.</sub></td>
 <td width="50%"><img src="docs/failures.png" alt="The caught failures page"><br><sub><b>Caught failures.</b> Every problem the Monitor stopped, and what the team did about it.</sub></td>
 </tr>
 </table>
@@ -187,7 +187,7 @@ python ta2/seed_store.py
 python ta2/server.py
 ```
 
-Then open http://127.0.0.1:8000. Ask anything, watch each agent work live, plant a failure from the Test lab, approve or hide personal data, and browse the caught failures, the quality report and each store's own words. The **Project tour** page walks through the project part by part, each with a button that runs its live demo.
+Then open http://127.0.0.1:8000. Ask anything, watch each agent work live, plant a failure from the Test lab, approve or hide personal data, and browse the caught failures, the quality report and each store's own words. The **Guided tour** page runs each capability as a one-click live demo.
 
 <details>
 <summary><b>How the app is built</b></summary>

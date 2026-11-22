@@ -388,36 +388,21 @@ table.log, table.compare, table.mini { width: 100%; border-collapse: collapse; f
 .fields input:focus { outline: none; border-color: var(--brand); }
 .term-form .button { justify-self: start; }
 
-/* ------------------------------------------------------------------ project tour */
+/* ------------------------------------------------------------------ guided tour */
 
-.tour-filter { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: var(--s6); border-radius: var(--r-md); background: var(--surface-sunk); }
-.tour-filter button { padding: 6px var(--s4); border-radius: var(--r-sm); font-size: var(--text-sm); font-weight: 500; color: var(--ink-soft); }
-.tour-filter button:hover { color: var(--ink); }
-.tour-filter button.picked { background: var(--surface); color: var(--brand); font-weight: 600; box-shadow: 0 1px 2px rgba(20, 33, 61, 0.1); }
-
-.tour-member { max-width: 880px; margin-bottom: var(--s10); }
-.tour-person { display: flex; align-items: center; gap: var(--s4); padding-bottom: var(--s4); border-bottom: 1px solid var(--line-strong); }
-.initials { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); font-weight: 700; letter-spacing: 0.02em; flex-shrink: 0; }
-.tour-person h2 { font-size: var(--text-xl); font-weight: 700; color: var(--brand); }
-.tour-person p { font-size: var(--text-sm); color: var(--muted); }
-.roll { margin-left: var(--s2); font-family: var(--mono); font-size: var(--text-xs); color: var(--faint); }
-
+.tour-group { max-width: 880px; margin-bottom: var(--s8); }
+.tour-group h2 { font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-bottom: var(--s2); border-bottom: 1px solid var(--line-strong); }
 .tour-parts { list-style: none; }
-.tour-part { display: grid; grid-template-columns: 32px 1fr; gap: var(--s4); padding: var(--s5) 0; border-bottom: 1px solid var(--line); }
+.tour-part { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: start; gap: var(--s4); padding: var(--s4) 0; border-bottom: 1px solid var(--line); }
 .tour-number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line-strong); font-family: var(--mono); font-size: var(--text-sm); color: var(--ink-soft); background: var(--surface); }
-.tour-body h3 { font-size: var(--text-lg); font-weight: 700; line-height: 28px; }
-.tour-plain { margin-top: var(--s1); color: var(--ink-soft); max-width: 68ch; }
-.tour-watch { margin-top: var(--s2); font-size: var(--text-sm); color: var(--muted); max-width: 68ch; }
-.tour-watch strong { color: var(--ink-soft); font-weight: 600; }
-.tour-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-top: var(--s4); }
-.tour-actions .trail-toggle { margin: 0; }
-.tour-actions .trail-toggle:disabled { cursor: default; opacity: 1; }
+.tour-body h3 { font-size: var(--text-md); font-weight: 700; line-height: 28px; }
+.tour-plain { color: var(--muted); font-size: var(--text-sm); max-width: 62ch; }
+.tour-run { margin-top: 2px; white-space: nowrap; }
 .tour-tech { margin-top: var(--s3); padding: var(--s3) var(--s4); border-left: 2px solid var(--line-strong); background: var(--surface); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: var(--text-sm); }
 .tour-sop { font-weight: 600; color: var(--executor); margin-bottom: var(--s2); }
 .tour-tech ul { list-style: none; display: grid; gap: var(--s1); }
-.tour-tech li { color: var(--muted); }
-.tour-tech code, .tour-terminal code { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink); background: var(--surface-sunk); padding: 1px 6px; border-radius: 4px; margin-right: var(--s1); }
-.tour-terminal { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s3); color: var(--muted); }
+.tour-tech code, .tour-terminal code { font-family: var(--mono); font-size: var(--text-xs); color: var(--ink); background: var(--surface-sunk); padding: 1px 6px; border-radius: 4px; }
+.tour-terminal { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s2); color: var(--muted); }
 
 /* ------------------------------------------------------------------ narrow screens */
 
@@ -436,4 +421,6 @@ table.log, table.compare, table.mini { width: 100%; border-collapse: collapse; f
   .how-arrow { display: none; }
   .bar-row { grid-template-columns: 130px 1fr 32px; }
   .lab-panel { width: min(360px, calc(100vw - 32px)); }
+  .tour-part { grid-template-columns: 32px minmax(0, 1fr); }
+  .tour-run { grid-column: 2; justify-self: start; }
 }
