@@ -43,6 +43,7 @@ from config import CHAT_MODEL, EMBED_MODEL, REPO_DIR, RETRY_BUDGET, SHOP_DB, STA
 from graph import build_team, team_turn
 from meaning import month_name
 from memory import FailureLog, forget_terms, load_terms, make_checkpointer, make_store, save_term, SharedDb
+from seed_store import SEED
 from sql_tool import reset_faults
 from visitors import PUBLIC, scoped
 
@@ -129,8 +130,16 @@ def who(request):
 
 
 def seen(session):
-    if session:
+    """Keeps a visitor's data alive. A new visitor starts with the same saved words as the sample stores have."""
+    if not session:
+        return
+    with app_db.lock:
+        new = not app_db.execute("SELECT 1 FROM sessions WHERE id = ?", (session,))
         app_db.execute("INSERT INTO sessions VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET last_seen = excluded.last_seen", (session, time.time()))
+    if new:
+        for user_id, terms in SEED.items():
+            for term, meaning in terms.items():
+                save_term(store, scoped(session, user_id), term, meaning)
 
 
 def allow(kind, request):
@@ -636,6 +645,7 @@ def evaluation():
 @app.get("/api/glossary/{user_id}")
 def glossary(user_id: str, request: Request):
     store_or_404(user_id, who(request))
+    seen(who(request))
     return [{"term": t, "meaning": m} for t, m in sorted(load_terms(store, scoped(who(request), user_id)).items())]
 
 

@@ -24,6 +24,7 @@ from pptx.util import Inches, Pt
 
 REPO_DIR = Path(__file__).resolve().parent.parent
 DIAGRAMS = REPO_DIR / "report" / "diagrams" / "png"
+SCREENSHOTS = REPO_DIR / "docs"
 OUT = REPO_DIR / "presentation" / "QueryMend_slides.pptx"
 
 # one colour per role, the same in the diagrams, the slides and the report
@@ -366,18 +367,81 @@ def slide_numbers(prs):
              "The evaluation also found a bug in our own Monitor, and we fixed the checks, not the test.")
 
 
+def screenshot(slide, name, x, y, w, crop):
+    """A part of an app screenshot. crop: left, top, right, bottom as shares of the picture."""
+    path = SCREENSHOTS / name
+    with Image.open(path) as image:
+        ratio = (image.width * (1 - crop[0] - crop[2])) / (image.height * (1 - crop[1] - crop[3]))
+    picture = slide.shapes.add_picture(str(path), Inches(x), Inches(y), Inches(w), Inches(w / ratio))
+    picture.crop_left, picture.crop_top, picture.crop_right, picture.crop_bottom = crop
+    picture.line.color.rgb = rgb(LINE)
+
+
+def slide_upload(prs):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    background(s, WHITE)
+    brand(s)
+    kicker(s, "Asked by the jury  ·  any shop's own file")
+    headline(s, "Press +, add your file, ask about your own shop")
+    screenshot(s, "upload.png", MARGIN, 1.95, 7.0, (0.2155, 0.2105, 0.2155, 0.2105))
+    points = [(BLUE, "Excel, CSV, SQL, SQLite", "Title lines, total rows and Rs signs are cleaned. Uploaded SQL is read, never run."),
+              (AMBER, "Its own Monitor limits", "Column meaning, links and limits are worked out from the numbers in the file."),
+              (PURPLE, "Private stays private", "Phone, email and address columns are hidden until a person approves.")]
+    for i, (colour, title, line) in enumerate(points):
+        y = 1.95 + i * 1.15
+        box(s, 8.0, y, 4.63, 1.0, fill=PAPER)
+        box(s, 8.0, y, 0.09, 1.0, fill=colour, rounded=False)
+        text(s, 8.3, y + 0.12, 4.2, 0.35, title, size=17, font=BODY_BOLD)
+        text(s, 8.3, y + 0.46, 4.2, 0.5, line, size=13, colour="374151", spacing=1.05)
+    text(s, 8.0, 5.5, 4.63, 0.3, "BLIND TEST, FIRST RUN, 36 QUESTIONS, 3 NEW SHOPS", size=11, font=BODY_BOLD, colour=GREEN, spc=80)
+    text(s, 8.0, 5.8, 4.63, 0.6, [[("29 → 33", {"font": HEAD, "colour": GREEN, "size": 32}), ("  right", {"size": 16})]], size=16)
+    text(s, 8.0, 6.42, 4.63, 0.5, "The 3 wrong ones were plausible numbers with no warning.", size=13, colour=RED)
+    footer(s, 10)
+    notes(s, "The jury asked: can a shopkeeper add their own file? Press plus, choose the file, check what was found, use it. "
+             "Each shop gets its own database, prompt, Monitor limits, words and conversations. Uploaded SQL is never run; only tables and rows are read from it. "
+             "The questions for the blind test were written before the model was asked. First test: 23 to 24 of 36, so we did a second round. "
+             "Second test: 29 to 33 of 36. Three answers were wrong without a warning, so compare one total with your own record. "
+             "Run it again: python ta2/evaluate_uploads.py blind2.")
+
+
+def slide_limits(prs):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    background(s, WHITE)
+    brand(s)
+    kicker(s, "Honest limits")
+    headline(s, "What it still gets wrong")
+    items = [(RED, RED_L, "A wrong number inside the limits", "The Monitor knows only the rules we wrote. One order line 100x too big can stay below the shop's total sales and pass."),
+             (RED, RED_L, "Invented stand-ins", "Ask for loyalty points, which do not exist, and the model uses something else."),
+             (AMBER, AMBER_L, "Small tests", "3 runs per case, 10 for containment, 36 blind questions, all shops invented by us, English only."),
+             (AMBER, AMBER_L, "One small model", "qwen2.5:3b depends on the prompt. Without its saved words the sample shop gets worse answers.")]
+    for i, (colour, fill, title, line) in enumerate(items):
+        x, y = MARGIN + (i % 2) * 6.07, 2.0 + (i // 2) * 1.75
+        box(s, x, y, 5.86, 1.55, fill=fill)
+        box(s, x, y, 0.09, 1.55, fill=colour, rounded=False)
+        text(s, x + 0.32, y + 0.18, 5.3, 0.4, title, size=18, font=BODY_BOLD, colour=colour)
+        text(s, x + 0.32, y + 0.58, 5.3, 0.9, line, size=14, spacing=1.1)
+    box(s, MARGIN, 5.6, 11.93, 1.15, fill=NAVY)
+    text(s, MARGIN + 0.4, 5.74, 11.2, 0.4, "READY FOR A PUBLIC LINK, NOT YET ONLINE", size=11, font=BODY_BOLD, colour=AMBER_D, spc=120)
+    text(s, MARGIN + 0.4, 6.07, 11.2, 0.6, "Private session per visitor, limits, and Delete my data. Tested on one computer with several visitors at once.",
+         size=15, colour=WHITE, spacing=1.1)
+    footer(s, 11)
+    notes(s, "Say the limits before the jury finds them. A row 100 times too big can still be below the all-time sales, so the bound does not see it. "
+             "The app also has an online mode with a private session per visitor. It is tested on one computer only and is not deployed.")
+
+
 def slide_demo(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     background(s, WHITE)
     brand(s)
     kicker(s, "Live demo")
-    headline(s, "Four runs, about three minutes")
+    headline(s, "Five steps, in the app or in the terminal")
     steps = [(RED, "One corrupted result, Monitor off, then on", "python ta2/run.py containment"),
              (AMBER, "Five injected failure types and the evidence table", "python ta2/run.py failures"),
              (PURPLE, "Personal data paused for a person: approve, then reject", "python ta2/run.py privacy"),
+             (GREEN, "Your own Excel, CSV or SQL file", "press + in the app (python ta2/server.py)"),
              (BLUE, "Your question, or your edge case", "every run is also saved in traces/ as a backup")]
     for i, (colour, title, command) in enumerate(steps):
-        y = 2.05 + i * 1.12
+        y = 1.95 + i * 0.98
         circle = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(MARGIN), Inches(y), Inches(0.62), Inches(0.62))
         circle.shadow.inherit = False
         circle.fill.solid()
@@ -386,8 +450,8 @@ def slide_demo(prs):
         text(s, MARGIN, y, 0.62, 0.62, str(i + 1), size=22, font=HEAD, colour=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
         text(s, MARGIN + 0.95, y - 0.02, 10.5, 0.4, title, size=21, font=BODY_BOLD)
         text(s, MARGIN + 0.95, y + 0.42, 10.5, 0.4, command, size=15, font=MONO if command.startswith("python") else BODY, colour=SLATE)
-    footer(s, 10)
-    notes(s, "Warm the model first (about 45 seconds cold). Run containment, then failures, then privacy. "
+    footer(s, 12)
+    notes(s, "Warm the model first (about 45 seconds cold). Run containment, then failures, then privacy, then an upload from data/sample_uploads. "
              "Then hand over to the jury for their own question or edge case. If anything misbehaves, open the saved trace.")
 
 
@@ -399,7 +463,7 @@ def slide_next(prs):
     headline(s, "From a class project to a tool a shop owner can trust", colour=WHITE)
     items = [(BLUE, "Owners set their own limits", "\"An order is never above Rs 50,000\""),
              (AMBER, "Real databases, read-only", "Postgres or MySQL through a read-only user, same checks"),
-             (GREEN, "Show the work", "The answer, the SQL behind it, and a note whenever the Monitor stepped in")]
+             (GREEN, "A public link", "So anyone can try it at any time. Needs a free host that can run the model")]
     for i, (colour, title, line) in enumerate(items):
         y = 2.25 + i * 1.05
         box(s, MARGIN, y + 0.08, 0.12, 0.72, fill=colour, rounded=False)
@@ -407,9 +471,9 @@ def slide_next(prs):
         text(s, MARGIN + 0.4, y + 0.45, 11, 0.4, line, size=15, colour=MUTED)
     text(s, MARGIN, 5.6, 11, 0.8, "Thank you. Questions?", size=40, font=HEAD, colour=WHITE)
     text(s, MARGIN, 6.4, 11, 0.4, "github.com/Swaraj-Mandre/FailureDetectionAgent", size=14, font=MONO, colour=AMBER_D)
-    footer(s, 11, dark=True)
+    footer(s, 13, dark=True)
     notes(s, "Close on the product idea: owner-defined limits, real databases through a read-only user, "
-             "and an interface that shows the SQL and every time the Monitor stepped in. Then invite questions.")
+             "and a public link. Then invite questions.")
 
 
 def export_pdf(pptx_path, pdf_path):
@@ -424,7 +488,7 @@ def main():
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(W), Inches(H)
     for build in (slide_hook, slide_problem, slide_intro, slide_pba1, slide_team, slide_real_run,
-                  slide_memory, slide_containment, slide_numbers, slide_demo, slide_next):
+                  slide_memory, slide_containment, slide_numbers, slide_upload, slide_limits, slide_demo, slide_next):
         build(prs)
     out = next((Path(a.split('=', 1)[1]) for a in sys.argv if a.startswith('--out=')), OUT)
     prs.save(out)

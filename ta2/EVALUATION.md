@@ -112,4 +112,4 @@ What we learned:
 
 Hand-written queries for the rules alone: 21 of 21 wrong queries were caught and 29 of 29 right queries raised no alarm. These were used while building.
 
-The sample shop does not use any of this. `evaluate.py` was run again after the change and every outcome in the tables above was the same. Timings were slower by up to 2.4 s, and the containment run with the Monitor on took 6.0 model calls instead of 5.0.
+The sample shop does not use any of this. `evaluate.py` was run again after the change and every outcome in the tables above was the same. Timings were slower by up to 2.4 s, and the containment run with the Monitor on took 6.0 model calls instead of 5.0. It was run once more on 25-11-2026 after the online mode: the same outcomes again, costs in `traces/eval/rerun_2026-11-25.md`. The old code of commit 5882019 also takes 6 calls on that day, so the extra call does not come from the later changes.

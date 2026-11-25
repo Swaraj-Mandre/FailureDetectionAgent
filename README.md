@@ -48,7 +48,7 @@ The real figure was **Rs 2,40,300**. The tool had read prices in paise (we injec
 
 ## See it work
 
-![QueryMend answering a question: the first result is blocked, fixed, checked, and shown with its data](docs/fixed_answer.png)
+![QueryMend answering a question: the first result is blocked, fixed and checked](docs/fixed_answer.png)
 
 *The first query forgot a `GROUP BY`, so SQLite returned one random row with no error. The **Monitor** blocked it (struck through in red), **Recovery** said exactly what to fix, the **Executor** ran the corrected query, and only the checked answer reached the user. Every step streams into the page live.*
 
@@ -225,6 +225,8 @@ The limits are environment variables, listed at the top of `ta2/visitors.py`. Th
 
 ### Use your own shop data
 
+![The preview of an uploaded Excel file, with the phone column hidden](docs/upload.png)
+
 Press **+** in the question box (or drop a file on it) and choose a file. QueryMend shows the tables it found, what it cleaned and which columns are private. Press **Use this data** and the shop appears in the store list.
 
 | File | Notes |
@@ -333,7 +335,8 @@ FailureDetectionAgent/
 ## Honest limits
 
 - **Small samples:** 3 runs per case, 10 for containment. At temperature 0 they show stability more than spread.
-- **The rules know only what we wrote down.** A wrong number inside the limits still gets through.
+- **The rules know only what we wrote down.** A wrong number inside the limits still gets through: one order line 100 times too big can be smaller than the shop's total sales.
+- **The sample shop needs its saved words.** Without `python ta2/seed_store.py` the model writes worse queries, and an empty result (`None`) was once accepted as an answer.
 - **The model can invent stand-ins** for data that does not exist (ask for loyalty points). Neither version catches it.
 - **Uploaded shops are harder.** 33 of 36 questions right on three shops it had never seen. The wrong ones were plausible numbers with no warning. All test shops are made up by us.
 - **One small model.** A bigger model makes fewer mistakes, so the cost gap would shrink.
