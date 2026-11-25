@@ -21,6 +21,7 @@ export interface Turn {
   approval?: string;
   error?: string;
   running?: boolean;
+  queued?: boolean;   // other people are asking, so this one waits its turn
 }
 
 export interface Store { id: string; name: string; uploaded: boolean }
@@ -28,6 +29,8 @@ export interface Setup {
   users: Store[];
   faults: { id: string; name: string }[];
   retry_budget: number;
+  public: boolean;   // the online copy, shared with strangers
+  keep_hours: number; max_files: number; max_file_mb: number; question_length: number;
 }
 export interface Status {
   ollama: boolean; chat_model: string; chat_model_ready: boolean;
@@ -58,9 +61,16 @@ export interface Evaluation {
 }
 export interface Term { term: string; meaning: string }
 
+// A refused form comes back as a list, which is not meant for people.
+async function problem(reply: Response): Promise<string> {
+  const detail = (await reply.json().catch(() => null))?.detail;
+  if (typeof detail === "string") return detail;
+  return reply.status === 422 ? "That is too long, or something is missing." : `The server answered ${reply.status}.`;
+}
+
 async function get<T>(path: string): Promise<T> {
   const reply = await fetch(path);
-  if (!reply.ok) throw new Error((await reply.json().catch(() => null))?.detail ?? reply.statusText);
+  if (!reply.ok) throw new Error(await problem(reply));
   return reply.json();
 }
 
@@ -69,7 +79,7 @@ async function send<T>(path: string, body: unknown, method = "POST"): Promise<T>
   const reply = await fetch(path, {
     method, headers: form ? undefined : { "Content-Type": "application/json" }, body: form ? body : JSON.stringify(body),
   });
-  if (!reply.ok) throw new Error((await reply.json().catch(() => null))?.detail ?? reply.statusText);
+  if (!reply.ok) throw new Error(await problem(reply));
   return reply.json();
 }
 
@@ -85,6 +95,7 @@ export const api = {
   acceptUpload: (token: string, name: string) => send<{ id: string; users: Store[] }>("/api/shops", { token, name }),
   discardUpload: (token: string) => send(`/api/shops/preview/${token}`, {}, "DELETE"),
   removeShop: (id: string) => send<{ users: Store[] }>(`/api/shops/${id}`, {}, "DELETE"),
+  deleteMyData: () => send<{ users: Store[] }>("/api/session", {}, "DELETE"),
   conversations: () => get<Conversation[]>("/api/conversations"),
   conversation: (id: string) => get<Turn[]>(`/api/conversations/${id}`),
   failures: () => get<Failures>("/api/failures"),
@@ -95,6 +106,7 @@ export const api = {
 
 export type LiveEvent =
   | { type: "start"; thread_id: string }
+  | { type: "queued" }
   | ({ type: "step" } & Step)
   | { type: "sql"; query: string; index: number }
   | ({ type: "rows" } & Preview)
@@ -108,8 +120,7 @@ export type LiveEvent =
 export async function stream(path: string, body: unknown, onEvent: (event: LiveEvent) => void) {
   const reply = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!reply.ok || !reply.body) {
-    const detail = (await reply.json().catch(() => null))?.detail;
-    onEvent({ type: "error", message: detail ?? `The server answered ${reply.status}.` });
+    onEvent({ type: "error", message: await problem(reply) });
     return;
   }
   const reader = reply.body.getReader();

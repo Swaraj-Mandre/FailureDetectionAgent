@@ -9,6 +9,7 @@ failure_log.db   a plain table of every failure, for the evidence tables.
 All three survive a restart because they are files, not RAM.
 """
 import sqlite3
+import threading
 from datetime import datetime
 
 from langchain_core.tools import tool
@@ -21,6 +22,17 @@ from config import CHECKPOINT_DB, FAILURE_LOG_DB, STORE_DB
 def open_db(path):
     # check_same_thread=False because LangGraph may touch the connection from worker threads.
     return sqlite3.connect(path, check_same_thread=False, isolation_level=None)
+
+
+class SharedDb:
+    """One connection used by several requests at once. Each statement and its rows are handled before the next one starts."""
+
+    def __init__(self, path):
+        self.conn, self.lock = open_db(path), threading.RLock()
+
+    def execute(self, sql, args=()):
+        with self.lock:
+            return self.conn.execute(sql, args).fetchall()
 
 
 def make_checkpointer():
@@ -82,7 +94,7 @@ class FailureLog:
     COLUMNS = ("logged_at", "thread_id", "agent", "failure_type", "sql", "error", "action", "retries_left")
 
     def __init__(self, path=FAILURE_LOG_DB):
-        self.conn = open_db(path)
+        self.conn = SharedDb(path)
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS failure_log (
                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,11 +120,11 @@ class FailureLog:
         if thread_id:
             query += " WHERE thread_id = ?"
             args = (thread_id,)
-        return self.conn.execute(query + " ORDER BY id", args).fetchall()
+        return self.conn.execute(query + " ORDER BY id", args)
 
     def counts_by_type(self):
         return self.conn.execute(
-            "SELECT failure_type, COUNT(*) FROM failure_log GROUP BY failure_type ORDER BY 2 DESC").fetchall()
+            "SELECT failure_type, COUNT(*) FROM failure_log GROUP BY failure_type ORDER BY 2 DESC")
 
     def forget(self, thread_id):
         self.conn.execute("DELETE FROM failure_log WHERE thread_id = ?", (thread_id,))

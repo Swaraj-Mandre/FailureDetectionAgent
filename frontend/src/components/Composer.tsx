@@ -63,6 +63,7 @@ export function Composer({ busy, onAsk }: { busy: boolean; onAsk: (question: str
           ref={box}
           rows={1}
           value={text}
+          maxLength={setup?.question_length}
           placeholder={shop?.uploaded ? `Ask about ${shop.name}` : "Ask about customers, products, orders or revenue"}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}

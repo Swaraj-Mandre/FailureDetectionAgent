@@ -204,6 +204,25 @@ Personal data never reaches the page before a person approves it: the live data 
 
 </details>
 
+<details>
+<summary><b>Online mode, for a public link</b></summary>
+<br>
+
+On your own computer the app has one user and no limits. Started with `QM_PUBLIC=1` it is safe to share with strangers:
+
+| Part | What it does |
+|:--|:--|
+| Private sessions | Each browser gets its own random session. Conversations, saved words, caught failures and uploaded shops belong to it, and nobody else can read, continue, approve or remove them |
+| Deleting | Everything of a visitor is deleted after 24 hours without use, or at once with **Delete my data** |
+| Several people | Two questions run at the same time, others wait their turn. A planted failure reaches only the question it was planted in |
+| Limits | 30 questions and 10 uploads an hour per visitor, 200 questions a day for everyone, 4 files of 5 MB, 3 shops |
+| Hostile files | Files are read in a separate process that is stopped after a minute |
+| Other websites | Requests from other pages are refused, and the page may only load its own scripts |
+
+The limits are environment variables, listed at the top of `ta2/visitors.py`. The model still has to run somewhere: online mode changes who may see what, not where the answers come from.
+
+</details>
+
 ### Use your own shop data
 
 Press **+** in the question box (or drop a file on it) and choose a file. QueryMend shows the tables it found, what it cleaned and which columns are private. Press **Use this data** and the shop appears in the store list.
@@ -290,6 +309,8 @@ FailureDetectionAgent/
 │   ├── personal.py    which columns and values count as personal data
 │   ├── evaluate.py    PBA 1 vs PBA 2, failure injection, containment
 │   ├── evaluate_uploads.py   answers on uploaded shops against known results
+│   ├── visitors.py    online mode: private sessions and limits
+│   ├── read_apart.py  online mode: reads uploaded files in a process of its own
 │   └── server.py      the web API: live streaming, approval, logs, results
 ├── frontend/        the React web app (built copy in frontend/dist)
 ├── traces/          saved output of every run: the evidence

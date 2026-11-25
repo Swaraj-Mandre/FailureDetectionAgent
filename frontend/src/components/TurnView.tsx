@@ -135,7 +135,7 @@ function Trail({ turn, technical }: { turn: Turn; technical: boolean }) {
       {turn.running && (
         <li className="trail-item waiting">
           <span className="dots" aria-label="Working"><i /><i /><i /></span>
-          <p className="trail-detail">Working on it</p>
+          <p className="trail-detail">{turn.queued ? "Other people are asking right now. Your question will start soon." : "Working on it"}</p>
         </li>
       )}
     </ol>

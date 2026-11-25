@@ -46,8 +46,8 @@ export function Glossary() {
       <form className="panel term-form" onSubmit={add}>
         <h2>Teach QueryMend a word</h2>
         <div className="fields">
-          <label>Word<input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="big order" /></label>
-          <label>What it means<input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder="an order with a total above Rs 8,000" /></label>
+          <label>Word<input value={term} maxLength={60} onChange={(e) => setTerm(e.target.value)} placeholder="big order" /></label>
+          <label>What it means<input value={meaning} maxLength={300} onChange={(e) => setMeaning(e.target.value)} placeholder="an order with a total above Rs 8,000" /></label>
         </div>
         {error && <p className="turn-error">{error}</p>}
         <button className="button button-brand" disabled={!term.trim() || !meaning.trim()}>Save the word</button>

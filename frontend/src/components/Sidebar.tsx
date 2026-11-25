@@ -27,9 +27,22 @@ export function Sidebar() {
   const choose = (id: string) => { setProblem(""); setUserId(id); navigate("/"); };
 
   const remove = async () => {
-    if (!store || !window.confirm(`Remove ${store.name}? Its data, its questions and its saved words are deleted from this computer. This cannot be undone.`)) return;
+    if (!store || !window.confirm(`Remove ${store.name}? Its data, its questions and its saved words are deleted. This cannot be undone.`)) return;
     try {
       const { users } = await api.removeShop(store.id);
+      choose("owner_pune");
+      setUsers(users);
+      refreshConversations();
+    } catch (e) {
+      setProblem((e as Error).message);
+    }
+  };
+
+  // Online only. On your own computer there is nobody to leave the data behind with.
+  const deleteAll = async () => {
+    if (!window.confirm("Delete everything you did here? Your questions, saved words and uploaded shops are deleted. This cannot be undone.")) return;
+    try {
+      const { users } = await api.deleteMyData();
       choose("owner_pune");
       setUsers(users);
       refreshConversations();
@@ -95,11 +108,14 @@ export function Sidebar() {
             <button onClick={() => openUpload()}><Upload size={13} /> Add your data</button>
             {store?.uploaded && <button onClick={remove}><Trash2 size={13} /> Remove</button>}
           </div>
+          {setup?.public && (
+            <div className="store-actions"><button onClick={deleteAll}><Trash2 size={13} /> Delete my data</button></div>
+          )}
           {problem && <p className="store-problem">{problem}</p>}
         </div>
         <p className={`system ${ready ? "ok" : "down"}`}>
           <span className="dot" />
-          {status === null ? "Server not reachable" : ready ? `${status.chat_model} ready, running offline` : "AI model not running"}
+          {status === null ? "Server not reachable" : ready ? (setup?.public ? `${status.chat_model} ready, online demo` : `${status.chat_model} ready, running offline`) : "AI model not running"}
         </p>
       </div>
     </aside>

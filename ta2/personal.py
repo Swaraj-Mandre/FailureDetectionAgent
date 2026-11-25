@@ -10,7 +10,8 @@ ANYWHERE = ("email", "e_mail", "phone", "mobile", "whatsapp", "aadhaar", "aadhar
 WHOLE_WORD = {"mob", "pan", "dob", "gst_no", "contact", "contact_no", "contact_number", "account_no", "upi_id",
               "मोबाईल", "मोबाइल", "फोन", "पत्ता", "पता", "ईमेल"}
 
-PHONE = re.compile(r"(\+?91[-\s]?|0)?[6-9]\d{4}[-\s]?\d{5}")
+# found anywhere in a value, because a query can join columns (name || ' ' || mobile)
+PHONE = re.compile(r"(?<![\d.])(\+?91[-\s]?|0)?[6-9]\d{4}[-\s]?\d{5}(?!\.?\d)")
 EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 
 
@@ -21,7 +22,7 @@ def personal_name(column):
 
 def personal_value(value):
     text = str(value).strip()
-    return bool(PHONE.fullmatch(text) or EMAIL.fullmatch(text))
+    return bool(PHONE.search(text) or EMAIL.search(text))
 
 
 def personal_columns(columns, rows=()):

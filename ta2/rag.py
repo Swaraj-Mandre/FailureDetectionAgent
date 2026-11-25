@@ -6,6 +6,7 @@ reused. Answers come ONLY from retrieved sections, and the prompt tells the
 model to say it doesn't know when the guide has nothing.
 """
 import hashlib
+import threading
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
@@ -40,6 +41,7 @@ Error: {error}
 Advice:"""
 
 _vectorstores = {}
+_building = threading.Lock()
 _llm = None
 
 
@@ -59,6 +61,11 @@ def corpus_hash(guide=CORPUS_FILE):
 
 def get_vectorstore(rebuild=False, guide=CORPUS_FILE):
     """Open the saved index, and rebuild it only when the guide changed (or on request)."""
+    with _building:
+        return _get_vectorstore(rebuild, guide)
+
+
+def _get_vectorstore(rebuild, guide):
     if guide in _vectorstores and not rebuild:
         return _vectorstores[guide]
 

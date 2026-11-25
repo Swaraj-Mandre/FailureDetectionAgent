@@ -41,19 +41,21 @@ export function Ask() {
 
   const apply = (event: LiveEvent) => {
     switch (event.type) {
+      case "queued": update((t) => ({ ...t, queued: true })); break;
       case "start":
+        update((t) => ({ ...t, queued: false }));
         if (threadRef.current !== event.thread_id) {
           threadRef.current = event.thread_id;
           navigate(`/c/${event.thread_id}`, { replace: true });
         }
         break;
-      case "step": update((t) => ({ ...t, steps: [...t.steps, { role: event.role, text: event.text, node: event.node }] })); break;
+      case "step": update((t) => ({ ...t, queued: false, steps: [...t.steps, { role: event.role, text: event.text, node: event.node }] })); break;
       case "sql": update((t) => ({ ...t, queries: [...t.queries, event.query] })); break;
       case "rows": update((t) => ({ ...t, results: [...t.results, { columns: event.columns, rows: event.rows, total: event.total, hidden: event.hidden }] })); break;
       case "tool_text": update((t) => ({ ...t, results: [...t.results, { columns: [], rows: [], total: 0, hidden: 0, error: event.text }] })); break;
       case "approval": update((t) => ({ ...t, approval: event.question, running: false })); break;
       case "answer": update((t) => ({ ...t, answer: event.answer, stats: event.stats, outcome: event.outcome, table: event.table, running: false, approval: undefined })); break;
-      case "error": update((t) => ({ ...t, error: event.message, running: false })); break;
+      case "error": update((t) => ({ ...t, error: event.message, running: false, queued: false })); break;
     }
   };
 

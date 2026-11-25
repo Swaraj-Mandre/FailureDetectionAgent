@@ -103,10 +103,8 @@ def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=T
                               "options": ["approve", "reject"]})
         if decision == "approve":
             return {"verdict": {"status": "ok"}, "events": ["privacy gate: a person APPROVED, data shown"]}
-        result = next(m for m in latest_tool_results(state["messages"]) if m.name == "run_sql")
-        masked = ToolMessage(content=agents.mask_sensitive(result.content, columns),
-                             tool_call_id=result.tool_call_id, id=result.id, name=result.name)
-        return {"messages": [masked], "verdict": {"status": "ok"},
+        masked = [agents.mask_message(m, columns) for m in latest_tool_results(state["messages"]) if m.name == "run_sql"]
+        return {"messages": masked, "verdict": {"status": "ok"},
                 "events": [f"privacy gate: a person REJECTED, {columns} masked"]}
 
     # ---- Recovery

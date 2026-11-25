@@ -27,6 +27,7 @@ NAMELIKE = re.compile(WORD("name|party|customer|category|brand|group|supplier|ve
 DATE_TEXT = re.compile(r"\d{4}-\d{2}-\d{2}")
 MONTH_NAMES = "January February March April May June July August September October November December".split()
 MOSTLY = 0.8
+SAMPLE_ROWS = 2000   # enough rows to see that pieces x price = total
 
 
 def q(name):
@@ -113,8 +114,8 @@ def find_product(conn, t, names):
             continue   # a x b and b x a are the same
         hits, of, mean_a, mean_b = conn.execute(
             f"SELECT SUM(ABS({q(total)} - {q(a)} * {q(b)}) <= 0.5 + 0.1 * ABS({q(total)})), COUNT(*), AVG({q(a)}), AVG({q(b)}) "
-            f"FROM {q(t['name'])} WHERE {q(a)} > 1 AND {q(b)} > 1 AND {q(total)} > 0").fetchone()
-        if not of or of < 0.3 * t["rows"] or hits < MOSTLY * of:
+            f"FROM (SELECT * FROM {q(t['name'])} LIMIT {SAMPLE_ROWS}) WHERE {q(a)} > 1 AND {q(b)} > 1 AND {q(total)} > 0").fetchone()
+        if not of or of < 0.3 * min(t["rows"], SAMPLE_ROWS) or hits < MOSTLY * of:
             continue
         pieces, price = (a, b) if mean_a <= mean_b else (b, a)
         if (QUANTITY.search(price) and not QUANTITY.search(pieces)) or (PRICE.search(pieces) and not PRICE.search(price)):

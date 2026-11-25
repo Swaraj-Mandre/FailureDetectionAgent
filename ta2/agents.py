@@ -184,64 +184,75 @@ def check_query(message, sql, columns, rows, messages, profile, raised, retries_
 def check_tool_results(messages, limits, profile=None, raised=(), retries_left=0, words=""):
     """The Monitor's verdict on the SQL results of the latest turn.
     profile and the arguments after it are only used for uploaded shops."""
-    kept = None
-    for message in latest_tool_results(messages):
-        if message.name != "run_sql":
-            continue
-        sql = sql_for(messages, message.tool_call_id)
-        if is_failure(message):
-            kind = classify(message.content)
-            hint = {"advice": checks.closest_column(profile, message.content)} if profile is not None else {}
-            return {"verdict": {"status": "failure", "kind": kind, "detail": message.content, "sql": sql, **hint},
-                    "last_problem": message.content,
-                    "events": [f"monitor: tool error, type '{kind}'"]}
+    results = [m for m in latest_tool_results(messages) if m.name == "run_sql"]
+    found = [check_result(m, messages, limits, profile, raised, retries_left, words) for m in results]
+    failures = [f for f in found if f and f["verdict"]["status"] == "failure"]
+    asking = [(m, f["verdict"]["columns"]) for m, f in zip(results, found) if f and f["verdict"]["status"] == "needs_approval"]
+    if failures:
+        # One reply can hold several queries. Every bad result is taken out, and private rows in the
+        # others are hidden, because the Executor sees all of them when it tries again.
+        replaced = [m for f in failures for m in f.get("messages", [])] + [mask_message(m, columns) for m, columns in asking]
+        return {**failures[0], "messages": replaced} if replaced else failures[0]
+    if asking:
+        columns = list(dict.fromkeys(c for _, names in asking for c in names))
+        return {"verdict": {"status": "needs_approval", "columns": columns},
+                "events": [f"monitor: personal data in result {columns}, asking a person"]}
+    return next((f for f in reversed(found) if f), None) or ok("monitor: result looks fine")
 
-        parsed = parse_rows(message.content)
-        if not parsed:
-            if profile is not None:   # no rows at all
-                verdict = check_query(message, sql, (), None, messages, profile, raised, retries_left, words)
-                if verdict and verdict["verdict"]["status"] != "ok":
-                    return verdict
-                kept = verdict or kept
-            continue
-        columns, rows = parsed
-        ungrouped = ungrouped_columns(sql)
-        if ungrouped:
-            quarantined = ToolMessage(content=QUARANTINE_TEXT, tool_call_id=message.tool_call_id,
-                                      id=message.id, name=message.name)
-            names = ", ".join(c.split(" AS ")[0].split(" as ")[0] for c in ungrouped)
-            detail = f"{names} sits next to SUM/COUNT/AVG but the query has no GROUP BY"
-            return {"messages": [quarantined],
-                    "verdict": {"status": "failure", "kind": "no_group_by", "detail": detail,
-                                "sql": sql, "group_by": names},
-                    "last_problem": "the query was missing a GROUP BY, so its numbers were not used.",
-                    "events": [f"monitor: silent bad result quarantined ({detail})"]}
-        personal = sensitive_columns(columns, rows)
-        allowed, labels = limits, ()
-        if "columns" in limits:   # an uploaded shop
-            if " - " in sql:      # a difference, such as profit, may go below zero
-                allowed = {**limits, "negative_ok": True}
-            added_up = re.search(r"\b(sum|avg|count|total)\s*\(", sql, re.IGNORECASE)
-            labels = [c for c in columns if c.lower() in limits["labels"] or (c in personal and not added_up)]
-        problems = sanity_problems(columns, rows, allowed, labels)
-        if problems:
-            # Containment: swap the bad rows out of the shared history so no agent can reuse them.
-            quarantined = ToolMessage(content=QUARANTINE_TEXT, tool_call_id=message.tool_call_id,
-                                      id=message.id, name=message.name)
-            detail = "; ".join(problems)
-            return {"messages": [quarantined],
-                    "verdict": {"status": "failure", "kind": "bad_result", "detail": detail, "sql": sql},
-                    "last_problem": "the result failed the Monitor's sanity check, so it was not used.",
-                    "events": [f"monitor: silent bad result quarantined ({detail})"]}
-        if profile is not None:
-            verdict = check_query(message, sql, columns, rows, messages, profile, raised, retries_left, words)
-            if verdict and verdict["verdict"]["status"] != "ok":
-                return verdict
-            kept = verdict or kept
-        if personal:
-            return {"verdict": {"status": "needs_approval", "columns": personal},
-                    "events": [f"monitor: personal data in result {personal}, asking a person"]}
-    return kept or ok("monitor: result looks fine")
+
+def check_result(message, messages, limits, profile, raised, retries_left, words):
+    """The verdict on one SQL result. None when there is nothing to say about it."""
+    sql = sql_for(messages, message.tool_call_id)
+    if is_failure(message):
+        kind = classify(message.content)
+        hint = {"advice": checks.closest_column(profile, message.content)} if profile is not None else {}
+        return {"verdict": {"status": "failure", "kind": kind, "detail": message.content, "sql": sql, **hint},
+                "last_problem": message.content,
+                "events": [f"monitor: tool error, type '{kind}'"]}
+
+    parsed = parse_rows(message.content)
+    if not parsed:
+        if profile is not None:   # no rows at all
+            return check_query(message, sql, (), None, messages, profile, raised, retries_left, words)
+        return None
+    columns, rows = parsed
+    ungrouped = ungrouped_columns(sql)
+    if ungrouped:
+        quarantined = ToolMessage(content=QUARANTINE_TEXT, tool_call_id=message.tool_call_id,
+                                  id=message.id, name=message.name)
+        names = ", ".join(c.split(" AS ")[0].split(" as ")[0] for c in ungrouped)
+        detail = f"{names} sits next to SUM/COUNT/AVG but the query has no GROUP BY"
+        return {"messages": [quarantined],
+                "verdict": {"status": "failure", "kind": "no_group_by", "detail": detail,
+                            "sql": sql, "group_by": names},
+                "last_problem": "the query was missing a GROUP BY, so its numbers were not used.",
+                "events": [f"monitor: silent bad result quarantined ({detail})"]}
+    personal = sensitive_columns(columns, rows)
+    allowed, labels = limits, ()
+    if "columns" in limits:   # an uploaded shop
+        if " - " in sql:      # a difference, such as profit, may go below zero
+            allowed = {**limits, "negative_ok": True}
+        added_up = re.search(r"\b(sum|avg|count|total)\s*\(", sql, re.IGNORECASE)
+        labels = [c for c in columns if c.lower() in limits["labels"] or (c in personal and not added_up)]
+    problems = sanity_problems(columns, rows, allowed, labels)
+    if problems:
+        # Containment: swap the bad rows out of the shared history so no agent can reuse them.
+        quarantined = ToolMessage(content=QUARANTINE_TEXT, tool_call_id=message.tool_call_id,
+                                  id=message.id, name=message.name)
+        detail = "; ".join(problems)
+        return {"messages": [quarantined],
+                "verdict": {"status": "failure", "kind": "bad_result", "detail": detail, "sql": sql},
+                "last_problem": "the result failed the Monitor's sanity check, so it was not used.",
+                "events": [f"monitor: silent bad result quarantined ({detail})"]}
+    kept = None
+    if profile is not None:
+        kept = check_query(message, sql, columns, rows, messages, profile, raised, retries_left, words)
+        if kept and kept["verdict"]["status"] != "ok":
+            return kept
+    if personal:
+        return {"verdict": {"status": "needs_approval", "columns": personal},
+                "events": [f"monitor: personal data in result {personal}, asking a person"]}
+    return kept
 
 
 def numbers_in(text):
@@ -316,6 +327,14 @@ def mask_sensitive(text, columns_to_hide):
     masked = [[("(hidden)" if i in hide else cell) for i, cell in enumerate(row)] for row in rows]
     lines = [text.splitlines()[0], " | ".join(columns)] + [" | ".join(r) for r in masked]
     return "\n".join(lines)
+
+
+def mask_message(message, columns):
+    """The same tool result with its private columns hidden. It replaces the old one in the conversation."""
+    if not parse_rows(message.content):
+        return message
+    return ToolMessage(content=mask_sensitive(message.content, columns), tool_call_id=message.tool_call_id,
+                       id=message.id, name=message.name)
 
 
 # ------------------------------------------------------------------ Recovery

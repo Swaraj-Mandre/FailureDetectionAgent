@@ -9,7 +9,7 @@ import { plural } from "../lib/words";
 export const ACCEPT = ".xlsx,.xlsm,.xls,.csv,.tsv,.txt,.sql,.db,.sqlite,.sqlite3";
 
 export function UploadDialog() {
-  const { upload, closeUpload, setUsers, setUserId } = useSettings();
+  const { setup, upload, closeUpload, setUsers, setUserId } = useSettings();
   const navigate = useNavigate();
   const dialog = useRef<HTMLDialogElement>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -93,7 +93,7 @@ export function UploadDialog() {
             onDrop={(e) => { e.preventDefault(); setOver(false); read([...e.dataTransfer.files]); }}>
             <Upload size={22} />
             <strong>{reading ? "Reading your file" : "Choose a file, or drop it here"}</strong>
-            <small>Excel, CSV, a SQL backup or a SQLite database. Up to 8 files, 10 MB each.</small>
+            <small>Excel, CSV, a SQL backup or a SQLite database. Up to {setup?.max_files ?? 8} files, {setup?.max_file_mb ?? 10} MB each.</small>
           </button>
         )}
 
@@ -101,6 +101,8 @@ export function UploadDialog() {
           <p className="upload-note">
             Using Vyapar, Tally, Busy or another billing app? Open the sale report there and export it to Excel.
             Files that belong together, such as stock and bills, can be added in one go.
+            {setup?.public && <> This is an online demo: please use sample data or a copy without private details.
+              Only you can see it. It is deleted after {setup.keep_hours} hours without use, or at once with Delete my data.</>}
           </p>
         )}
 
@@ -141,7 +143,9 @@ export function UploadDialog() {
 
       {found && (
         <div className="upload-foot">
-          <p>Your file stays on this computer. Private columns are shown only after you approve.</p>
+          <p>{setup?.public
+            ? `Only you can see this data here. It is deleted after ${setup.keep_hours} hours without use, or when you press Delete my data.`
+            : "Your file stays on this computer."} Private columns are shown only after you approve.</p>
           <button className="button button-quiet" onClick={() => picker.current?.click()} disabled={saving}>Choose another file</button>
           <button className="button button-brand" onClick={accept} disabled={saving || !name.trim()}>
             {saving ? "Adding" : "Use this data"}

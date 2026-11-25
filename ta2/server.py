@@ -7,11 +7,13 @@ The agents are exactly the ones in graph.py. This file only:
 - pauses and resumes the run for the privacy approval,
 - takes a shopkeeper's own files, shows what was found, and adds them as a new store,
 - serves the failure log, the evaluation results and the glossary,
-- serves the built frontend (frontend/dist) so one command runs everything.
+- serves the built frontend (frontend/dist) so one command runs everything,
+- keeps visitors apart when it runs online (QM_PUBLIC=1, see visitors.py).
 
 Build the frontend once first: cd frontend && npm install && npm run build
 """
 import json
+import logging
 import os
 import re
 import sqlite3
@@ -20,26 +22,29 @@ import threading
 import time
 import urllib.request
 import uuid
-from collections import defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+import anyio
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.errors import GraphRecursionError
 from langgraph.types import Command
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import agents
 import importer
 import shops
+import visitors
 from config import CHAT_MODEL, EMBED_MODEL, REPO_DIR, RETRY_BUDGET, SHOP_DB, STATE_DIR
 from graph import build_team, team_turn
 from meaning import month_name
-from memory import FailureLog, forget_terms, load_terms, make_checkpointer, make_store, open_db, save_term
+from memory import FailureLog, forget_terms, load_terms, make_checkpointer, make_store, save_term, SharedDb
 from sql_tool import reset_faults
+from visitors import PUBLIC, scoped
 
 MAX_STEPS = 60   # the model can keep calling the tool without ever answering; stop it instead of blocking everyone
 FRONTEND_DIST = REPO_DIR / "frontend" / "dist"
@@ -73,41 +78,123 @@ EXAMPLES = [
 checkpointer = make_checkpointer()
 store = make_store()
 failure_log = FailureLog()
-teams = {}
-run_lock = threading.Lock()   # QM_FAULT is process-wide, so one run at a time
+teams = OrderedDict()         # the most recently used ones, see team_for
+TEAMS_KEPT = 40
+teams_lock = threading.Lock()
+limits = visitors.Limits()
+slots = visitors.Slots()
+upload_lock = threading.Lock()   # one file is read at a time, because reading needs memory
+log = logging.getLogger("querymend")
 
-app_db = open_db(APP_DB)
-app_db.executescript("""
+app_db = SharedDb(APP_DB)
+app_db.conn.executescript("""
     CREATE TABLE IF NOT EXISTS conversations (
         id TEXT PRIMARY KEY, title TEXT NOT NULL, user_id TEXT NOT NULL, created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS turns (
         thread_id TEXT NOT NULL, position INTEGER NOT NULL, payload TEXT NOT NULL,
         PRIMARY KEY (thread_id, position));
+    CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, last_seen REAL NOT NULL);
 """)
+if "session" not in [r[1] for r in app_db.execute("PRAGMA table_info(conversations)")]:
+    app_db.execute("ALTER TABLE conversations ADD COLUMN session TEXT NOT NULL DEFAULT ''")
 
-pending = {}   # thread_id -> the turn being built while a run is paused for approval
-
-
-def team_for(monitor_on, user_id):
-    key = (monitor_on, user_id)
-    if key not in teams:
-        teams[key] = build_team(checkpointer=checkpointer, store=store, user_id=user_id, monitor_on=monitor_on,
-                                failure_log=failure_log, shop=store_or_404(user_id))
-    return teams[key]
+pending = {}   # (session, thread_id) -> the turn being built while a run is paused for approval
 
 
-def store_or_404(user_id):
-    shop = shops.shop_for(user_id)
+def team_for(monitor_on, user_id, session):
+    key = (monitor_on, scoped(session, user_id))
+    shop = store_or_404(user_id, session)
+    with teams_lock:
+        if key not in teams:
+            teams[key] = build_team(checkpointer=checkpointer, store=store, user_id=scoped(session, user_id), monitor_on=monitor_on,
+                                    failure_log=failure_log, shop=shop)
+        teams.move_to_end(key)
+        while len(teams) > TEAMS_KEPT:
+            teams.popitem(last=False)
+        return teams[key]
+
+
+def store_or_404(user_id, session):
+    shop = shops.shop_for(user_id, session)
     if shop is None:
         raise HTTPException(404, "Unknown store. It may have been removed.")
     return shop
 
 
-def set_fault(fault):
-    os.environ.pop("QM_FAULT", None)
-    if fault:
-        os.environ["QM_FAULT"] = fault
-    reset_faults()
+# ------------------------------------------------------------------ visitors
+
+def who(request):
+    """The session of a request. Empty on your own computer, where there is only one person."""
+    return request.state.session
+
+
+def seen(session):
+    if session:
+        app_db.execute("INSERT INTO sessions VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET last_seen = excluded.last_seen", (session, time.time()))
+
+
+def allow(kind, request):
+    """Counts one question, upload or saved word against the limits, and keeps the session alive."""
+    if not PUBLIC:
+        return
+    message = limits.allow(kind, who(request), request.state.address)
+    if message:
+        raise HTTPException(429, message)
+    seen(who(request))
+
+
+def threads_of(session, user_id=None):
+    rows = app_db.execute("SELECT id, user_id FROM conversations WHERE session = ?", (session,))
+    return [r[0] for r in rows if user_id in (None, r[1])]
+
+
+def forget_threads(session, user_id=None):
+    for thread_id in threads_of(session, user_id):
+        pending.pop((session, thread_id), None)
+        checkpointer.delete_thread(thread_id)
+        failure_log.forget(thread_id)
+        app_db.execute("DELETE FROM turns WHERE thread_id = ?", (thread_id,))
+        app_db.execute("DELETE FROM conversations WHERE id = ?", (thread_id,))
+
+
+def forget_store(session, user_id):
+    """An uploaded shop, what was asked about it and the words saved for it."""
+    forget_threads(session, user_id)
+    forget_terms(store, scoped(session, user_id))
+    with teams_lock:
+        for key in [k for k in teams if k[1] == scoped(session, user_id)]:
+            del teams[key]
+    shops.remove(user_id, session)
+
+
+def forget_session(session):
+    """Everything one visitor left behind, also for the sample stores."""
+    for s in shops.stores(session):
+        forget_store(session, s["id"])
+    shops.discard_all(session)
+    forget_threads(session)
+    app_db.execute("DELETE FROM sessions WHERE id = ?", (session,))
+
+
+def forget_old_sessions():
+    """Runs in the background online: deletes the data of visitors who have not come back."""
+    while True:
+        time.sleep(visitors.SWEEP_SECONDS)
+        try:
+            shops.clear_old_waiting()
+            # a visitor who deleted everything while another request was still running is picked up here
+            left = {r[0] for r in app_db.execute("SELECT DISTINCT session FROM conversations WHERE session != ''")}
+            for session in left | shops.sessions_with_stores():
+                app_db.execute("INSERT OR IGNORE INTO sessions VALUES (?, ?)", (session, time.time()))
+            old = app_db.execute("SELECT id FROM sessions WHERE last_seen < ?", (time.time() - visitors.SESSION_HOURS * 3600,))
+            for (session,) in old:
+                if slots.enter(session):
+                    try:
+                        forget_session(session)
+                    finally:
+                        slots.leave(session)
+        except Exception:
+            log.exception("could not delete old sessions")
 
 
 def sse(kind, **data):
@@ -181,8 +268,9 @@ def finish(team, config, turn):
     turn["outcome"] = outcome_of(turn["steps"])
     turn["table"] = answer_table(messages, turn["outcome"])
     turn.pop("approval", None)
-    position = app_db.execute("SELECT COUNT(*) FROM turns WHERE thread_id = ?", (turn["thread_id"],)).fetchone()[0]
-    app_db.execute("INSERT INTO turns VALUES (?, ?, ?)", (turn["thread_id"], position, json.dumps(turn)))
+    with app_db.lock:
+        position = app_db.execute("SELECT COUNT(*) FROM turns WHERE thread_id = ?", (turn["thread_id"],))[0][0]
+        app_db.execute("INSERT INTO turns VALUES (?, ?, ?)", (turn["thread_id"], position, json.dumps(turn)))
     return sse("answer", answer=turn["answer"], stats=turn["stats"], outcome=turn["outcome"], table=turn["table"])
 
 
@@ -219,48 +307,88 @@ def outcome_of(steps):
     return "checked"
 
 
-def guarded(stream):
-    """Runs one stream under the lock and reports errors to the page instead of dropping the connection."""
-    if not run_lock.acquire(blocking=False):
+class EventStream(StreamingResponse):
+    """Server-Sent Events. When the visitor leaves in the middle, the run is closed at once, so its place is free again."""
+    media_type = "text/event-stream"
+
+    def __init__(self, events):
+        super().__init__(events)
+        self.events = events
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            with anyio.CancelScope(shield=True):
+                await anyio.to_thread.run_sync(self.events.close)
+
+
+def guarded(session, run_key, stream):
+    """Runs one stream when there is a place for it, and reports errors to the page instead of dropping the connection."""
+    if not slots.enter(session):
         yield sse("error", message="Another question is still running. Wait for it to finish.")
         return
+    try:
+        if not slots.places.acquire(blocking=False):
+            yield sse("queued")
+            if not slots.wait():
+                yield sse("error", message="Many people are asking right now. Please try again in a minute.")
+                return
+        try:
+            yield from in_place(run_key, stream)
+        finally:
+            slots.places.release()
+    finally:
+        slots.leave(session)
+
+
+def in_place(run_key, stream):
     try:
         yield from stream
     except GraphRecursionError:
         yield sse("error", message="This question took too many steps, so it was stopped. Please ask it in a simpler way.")
     except Exception as exc:   # the page shows it; the server keeps running
-        yield sse("error", message=f"{type(exc).__name__}: {exc}")
+        log.exception("a question failed")
+        # online, the details stay in the server's log
+        yield sse("error", message="Something went wrong while answering. Please try again." if PUBLIC else f"{type(exc).__name__}: {exc}")
     finally:
-        set_fault(None)
-        run_lock.release()
+        reset_faults(run_key)
+
+
+def settings_for(thread_id, run_key, fault=None):
+    """The config of one run. The planted failure travels with the run, so it cannot reach anyone else's."""
+    return {"configurable": {"thread_id": thread_id, "fault": fault, "run": run_key}, "recursion_limit": MAX_STEPS}
 
 
 # ------------------------------------------------------------------ API
 
-app = FastAPI(title="QueryMend")
+app = FastAPI(title="QueryMend", docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(visitors.Guard)
+if PUBLIC:
+    threading.Thread(target=forget_old_sessions, daemon=True).start()
 
 
 class AskBody(BaseModel):
-    thread_id: str | None = None
-    question: str
-    user_id: str = "owner_pune"
+    thread_id: str | None = Field(None, max_length=60)
+    question: str = Field(max_length=visitors.QUESTION_LENGTH)
+    user_id: str = Field("owner_pune", max_length=60)
     monitor_on: bool = True
-    fault: str | None = None
+    fault: str | None = Field(None, max_length=30)
 
 
 class ResumeBody(BaseModel):
-    thread_id: str
-    decision: str   # "approve" or "reject"
+    thread_id: str = Field(max_length=60)
+    decision: str = Field(max_length=10)   # "approve" or "reject"
 
 
 class AcceptBody(BaseModel):
-    token: str
-    name: str
+    token: str = Field(max_length=60)
+    name: str = Field(max_length=200)
 
 
 class TermBody(BaseModel):
-    term: str
-    meaning: str
+    term: str = Field(max_length=60)
+    meaning: str = Field(max_length=300)
 
 
 @app.get("/api/status")
@@ -281,18 +409,20 @@ def status():
 
 
 @app.get("/api/setup")
-def setup():
+def setup(request: Request):
     return {
-        "users": shops.stores(),
+        "users": shops.stores(who(request)),
+        "public": PUBLIC, "keep_hours": visitors.SESSION_HOURS,
+        "max_files": visitors.MAX_FILES, "max_file_mb": visitors.MAX_FILE_MB, "question_length": visitors.QUESTION_LENGTH,
         "faults": [{"id": k, "name": v} for k, v in FAULTS.items()],
         "retry_budget": RETRY_BUDGET,
     }
 
 
 @app.get("/api/shop")
-def shop(user_id: str = "owner_pune"):
+def shop(request: Request, user_id: str = "owner_pune"):
     """A few facts about the store, and questions to start with, for the welcome screen."""
-    chosen = store_or_404(user_id)
+    chosen = store_or_404(user_id, who(request))
     if not chosen.is_sample:
         about = chosen.about
         return {"name": chosen.name, "uploaded": True, "facts": about["facts"], "examples": about["questions"],
@@ -306,15 +436,29 @@ def shop(user_id: str = "owner_pune"):
 
 
 @app.post("/api/shops/preview")
-def preview_upload(files: list[UploadFile] = File(...)):
+def preview_upload(request: Request, files: list[UploadFile] = File(...)):
     """Read the chosen files and show what was found. Nothing is added until the person accepts it."""
+    allow("upload", request)
+    session = who(request)
+    if PUBLIC:
+        if sum(s["uploaded"] for s in shops.stores(session)) >= visitors.STORES_EACH:
+            raise HTTPException(400, f"You can keep {visitors.STORES_EACH} shops at a time. Remove one first.")
+        if shops.disk_used() > visitors.DISK_MB * 1024 * 1024:
+            raise HTTPException(503, "The online demo has no room for new files right now. Please try again later.")
     if len(files) > importer.MAX_FILES:
         raise HTTPException(400, f"Choose at most {importer.MAX_FILES} files at a time.")
+    if not upload_lock.acquire(timeout=visitors.IMPORT_SECONDS + 10):
+        raise HTTPException(503, "Another file is being read right now. Please try again in a minute.")
     try:
         # one byte over the limit is enough for the importer to refuse a file that is too big
-        token, about = shops.prepare([(f.filename or "file", f.file.read(importer.MAX_FILE_MB * 1024 * 1024 + 1)) for f in files])
+        token, about = shops.prepare([(f.filename or "file", f.file.read(importer.MAX_FILE_MB * 1024 * 1024 + 1)) for f in files], session)
     except importer.ImportProblem as problem:
         raise HTTPException(400, str(problem))
+    except Exception:
+        log.exception("a file could not be read")
+        raise HTTPException(400, "This file could not be read. Please export it again as Excel or CSV and try once more.")
+    finally:
+        upload_lock.release()
     return {"token": token, "name": suggested_name(files[0].filename or ""), "files": about["files"],
             "questions": about["questions"], "tables": shops.preview_tables(token, about)}
 
@@ -325,110 +469,133 @@ def suggested_name(filename):
 
 
 @app.post("/api/shops")
-def accept_upload(body: AcceptBody):
+def accept_upload(body: AcceptBody, request: Request):
+    session = who(request)
+    if PUBLIC and sum(s["uploaded"] for s in shops.stores(session)) >= visitors.STORES_EACH:
+        raise HTTPException(400, f"You can keep {visitors.STORES_EACH} shops at a time. Remove one first.")
     try:
-        store_id = shops.accept(body.token, body.name)
+        store_id = shops.accept(body.token, body.name, session)
     except importer.ImportProblem as problem:
         raise HTTPException(400, str(problem))
-    return {"id": store_id, "users": shops.stores()}
+    seen(session)
+    return {"id": store_id, "users": shops.stores(session)}
 
 
 @app.delete("/api/shops/preview/{token}")
-def discard_upload(token: str):
-    shops.discard(token)
+def discard_upload(token: str, request: Request):
+    shops.discard(token, who(request))
     return {"ok": True}
 
 
 @app.delete("/api/shops/{store_id}")
-def remove_shop(store_id: str):
+def remove_shop(store_id: str, request: Request):
     """Remove an uploaded shop and everything that was said about it. The sample stores cannot be removed."""
-    chosen = store_or_404(store_id)
-    if chosen.is_sample:
+    session = who(request)
+    if store_or_404(store_id, session).is_sample:
         raise HTTPException(400, "The sample stores cannot be removed.")
-    if not run_lock.acquire(blocking=False):
+    if not slots.enter(session):
         raise HTTPException(409, "A question is still running. Wait for it to finish.")
     try:
-        threads = [r[0] for r in app_db.execute("SELECT id FROM conversations WHERE user_id = ?", (store_id,))]
-        for thread_id in threads:
-            pending.pop(thread_id, None)
-            checkpointer.delete_thread(thread_id)
-            failure_log.forget(thread_id)
-            app_db.execute("DELETE FROM turns WHERE thread_id = ?", (thread_id,))
-        app_db.execute("DELETE FROM conversations WHERE user_id = ?", (store_id,))
-        forget_terms(store, store_id)
-        for key in [k for k in teams if k[1] == store_id]:
-            del teams[key]
-        shops.remove(store_id)
+        forget_store(session, store_id)
     finally:
-        run_lock.release()
-    return {"users": shops.stores()}
+        slots.leave(session)
+    return {"users": shops.stores(session)}
+
+
+@app.delete("/api/session")
+def delete_my_data(request: Request):
+    """Online only: a visitor deletes everything they left here, without waiting for it to expire."""
+    session = who(request)
+    if not session:
+        raise HTTPException(404, "Not found.")
+    if not slots.enter(session):
+        raise HTTPException(409, "A question is still running. Wait for it to finish.")
+    try:
+        forget_session(session)
+    finally:
+        slots.leave(session)
+    return {"users": shops.stores(session)}
 
 
 @app.post("/api/ask")
-def ask(body: AskBody):
+def ask(body: AskBody, request: Request):
     if body.fault and body.fault not in FAULTS:
         raise HTTPException(400, "Unknown failure type.")
-    thread_id = body.thread_id or f"web-{uuid.uuid4().hex[:10]}"
-    # a conversation stays with the store it was started in, so two shops never mix in one thread
-    started_in = app_db.execute("SELECT user_id FROM conversations WHERE id = ?", (thread_id,)).fetchone()
-    user_id = started_in[0] if started_in else body.user_id
-    team = team_for(body.monitor_on, user_id)
+    question = body.question.strip()
+    if not question:
+        raise HTTPException(400, "Please type a question.")
+    session = who(request)
+    # a conversation stays with the store it was started in, so two shops never mix in one thread.
+    # An id that is not one of this visitor's own starts a new conversation.
+    started_in = app_db.execute("SELECT user_id FROM conversations WHERE id = ? AND session = ?", (body.thread_id, session))
+    thread_id = body.thread_id if started_in else f"web-{uuid.uuid4().hex}"
+    user_id = started_in[0][0] if started_in else body.user_id
+    team = team_for(body.monitor_on, user_id, session)
+    allow("ask", request)
     if not started_in:
-        app_db.execute("INSERT INTO conversations VALUES (?, ?, ?, ?)",
-                       (thread_id, body.question[:80], user_id, datetime.now().isoformat(timespec="seconds")))
-    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": MAX_STEPS}
+        app_db.execute("INSERT INTO conversations (id, title, user_id, created_at, session) VALUES (?, ?, ?, ?, ?)",
+                       (thread_id, question[:80], user_id, datetime.now().isoformat(timespec="seconds"), session))
+    run_key = uuid.uuid4().hex
+    turn = {"thread_id": thread_id, "question": question, "fault": body.fault,
+            "monitor_on": body.monitor_on, "user_id": user_id, "steps": [], "queries": [], "results": []}
+    config = settings_for(thread_id, run_key, body.fault)
 
     def stream():
-        state = team.get_state(config).values
-        turn = {"thread_id": thread_id, "question": body.question, "fault": body.fault,
-                "monitor_on": body.monitor_on, "user_id": user_id, "started": time.time(),
-                "seen": len(state.get("messages", [])), "steps": [], "queries": [], "results": []}
+        pending.pop((session, thread_id), None)   # asking again instead of answering the approval
+        turn.update(started=time.time(), seen=len(team.get_state(config).values.get("messages", [])))
         yield sse("start", thread_id=thread_id)
-        set_fault(body.fault)
-        yield from run(team, team_turn(body.question), config, turn)
+        yield from run(team, team_turn(question), config, turn)
         if "approval" in turn:
-            pending[thread_id] = (team, turn)
+            pending[session, thread_id] = (team, turn)
             return
         yield finish(team, config, turn)
 
-    return StreamingResponse(guarded(stream()), media_type="text/event-stream")
+    return EventStream(guarded(session, run_key, stream()))
 
 
 @app.post("/api/resume")
-def resume(body: ResumeBody):
-    if body.thread_id not in pending or body.decision not in ("approve", "reject"):
+def resume(body: ResumeBody, request: Request):
+    session = who(request)
+    if (session, body.thread_id) not in pending or body.decision not in ("approve", "reject"):
         raise HTTPException(400, "Nothing is waiting for approval in this conversation.")
-    team, turn = pending.pop(body.thread_id)
-    config = {"configurable": {"thread_id": body.thread_id}, "recursion_limit": MAX_STEPS}
+    run_key = uuid.uuid4().hex
+    config = settings_for(body.thread_id, run_key)
 
     def stream():
+        team, turn = pending.pop((session, body.thread_id))
         yield from run(team, Command(resume=body.decision), config, turn)
         yield finish(team, config, turn)
 
-    return StreamingResponse(guarded(stream()), media_type="text/event-stream")
+    return EventStream(guarded(session, run_key, stream()))
 
 
 @app.get("/api/conversations")
-def conversations():
+def conversations(request: Request):
     rows = app_db.execute("""
         SELECT c.id, c.title, c.user_id, c.created_at, COUNT(t.position)
-        FROM conversations c LEFT JOIN turns t ON t.thread_id = c.id
-        GROUP BY c.id ORDER BY c.created_at DESC LIMIT 50""").fetchall()
+        FROM conversations c LEFT JOIN turns t ON t.thread_id = c.id WHERE c.session = ?
+        GROUP BY c.id ORDER BY c.created_at DESC LIMIT 50""", (who(request),))
     return [{"id": r[0], "title": r[1], "user_id": r[2], "created_at": r[3], "turns": r[4]} for r in rows if r[4]]
 
 
 @app.get("/api/conversations/{thread_id}")
-def conversation(thread_id: str):
-    rows = app_db.execute("SELECT payload FROM turns WHERE thread_id = ? ORDER BY position", (thread_id,)).fetchall()
+def conversation(thread_id: str, request: Request):
+    if not app_db.execute("SELECT 1 FROM conversations WHERE id = ? AND session = ?", (thread_id, who(request))):
+        raise HTTPException(404, "This conversation does not exist any more.")
+    rows = app_db.execute("SELECT payload FROM turns WHERE thread_id = ? ORDER BY position", (thread_id,))
     return [json.loads(r[0]) for r in rows]
 
 
 @app.get("/api/failures")
-def failures():
+def failures(request: Request):
     columns = FailureLog.COLUMNS
     rows = [dict(zip(columns, r)) for r in failure_log.rows()]
+    if PUBLIC:   # each visitor sees only the failures of their own questions
+        mine = set(threads_of(who(request)))
+        rows = [r for r in rows if r["thread_id"] in mine]
     rows.reverse()
-    return {"counts": [{"type": t, "count": n} for t, n in failure_log.counts_by_type()], "rows": rows[:300]}
+    counts = Counter(r["failure_type"] for r in rows).most_common()
+    return {"counts": [{"type": t, "count": n} for t, n in counts], "rows": rows[:300]}
 
 
 @app.get("/api/evaluation")
@@ -467,18 +634,21 @@ def evaluation():
 
 
 @app.get("/api/glossary/{user_id}")
-def glossary(user_id: str):
-    store_or_404(user_id)
-    return [{"term": t, "meaning": m} for t, m in sorted(load_terms(store, user_id).items())]
+def glossary(user_id: str, request: Request):
+    store_or_404(user_id, who(request))
+    return [{"term": t, "meaning": m} for t, m in sorted(load_terms(store, scoped(who(request), user_id)).items())]
 
 
 @app.post("/api/glossary/{user_id}")
-def add_term(user_id: str, body: TermBody):
-    store_or_404(user_id)
+def add_term(user_id: str, body: TermBody, request: Request):
+    store_or_404(user_id, who(request))
+    allow("word", request)
+    if PUBLIC and len(load_terms(store, scoped(who(request), user_id))) >= visitors.TERMS_EACH:
+        raise HTTPException(400, f"You can save {visitors.TERMS_EACH} words for a store.")
     if not body.term.strip() or not body.meaning.strip():
         raise HTTPException(400, "A word and its meaning are both needed.")
-    save_term(store, user_id, body.term, body.meaning)
-    return glossary(user_id)
+    save_term(store, scoped(who(request), user_id), body.term, body.meaning)
+    return glossary(user_id, request)
 
 
 # ------------------------------------------------------------------ the built frontend
@@ -503,5 +673,6 @@ if FRONTEND_DIST.exists():
 if __name__ == "__main__":
     import uvicorn
 
-    print("QueryMend is running at http://127.0.0.1:8000")
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
+    host, port = ("0.0.0.0" if PUBLIC else "127.0.0.1"), int(os.environ.get("PORT", 8000))
+    print(f"QueryMend is running at http://127.0.0.1:{port}")
+    uvicorn.run(app, host=host, port=port, log_level="warning", limit_concurrency=100 if PUBLIC else None)

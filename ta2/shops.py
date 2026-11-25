@@ -18,10 +18,12 @@ from datetime import datetime
 from pathlib import Path
 
 import importer
+import read_apart
 from config import GENERAL_GUIDE_FILE, CORPUS_FILE, SHOP_DB, STATE_DIR
 from meaning import (DATE_TEXT, ID_LIKE, column_note, example_queries, example_questions, facts, find_meaning, Parts, plain, q,
                      work_out_limits)
 from personal import personal_columns
+from visitors import PUBLIC
 
 SHOPS_DIR = STATE_DIR / "shops"
 WAITING_DIR = STATE_DIR / "shops_waiting"   # uploaded and previewed, not accepted yet
@@ -50,44 +52,66 @@ class Shop:
 SAMPLE = Shop("sample", "Sahyadri Stores", SHOP_DB)
 
 
-def shop_for(user_id):
-    """The shop behind a store in the picker. None if there is no such store."""
+def read_about(folder, session):
+    """A shop's description. None if it is gone, or belongs to another visitor."""
+    try:
+        about = json.loads((folder / "about.json").read_text(encoding="utf-8"))
+    except OSError:   # removed in this very moment, or never there
+        return None
+    return about if about.get("session", "") == session else None
+
+
+def shop_for(user_id, session=""):
+    """The shop behind a store in the picker. None if there is no such store, or it is another visitor's."""
     if user_id in SAMPLE_USERS:
         return SAMPLE
     if not re.fullmatch(r"shop-[0-9a-f]{10}", user_id or ""):
         return None
     folder = SHOPS_DIR / user_id
-    if not (folder / "about.json").exists():
+    about = read_about(folder, session)
+    if about is None:
         return None
-    about = json.loads((folder / "about.json").read_text(encoding="utf-8"))
     if "meaning" not in about:   # added before this version
         about = understand(about, folder / "shop.db")
         (folder / "about.json").write_text(json.dumps(about, ensure_ascii=False), encoding="utf-8")
     return Shop(user_id, about["name"], folder / "shop.db", about)
 
 
-def stores():
-    """Every store the picker can show."""
+def stores(session=""):
+    """Every store the picker can show to this visitor."""
     found = [{"id": k, "name": v, "uploaded": False} for k, v in SAMPLE_USERS.items()]
-    folders = sorted(SHOPS_DIR.glob("shop-*/about.json"), key=lambda p: p.stat().st_mtime) if SHOPS_DIR.exists() else []
-    for path in folders:
-        about = json.loads(path.read_text(encoding="utf-8"))
-        found.append({"id": path.parent.name, "name": about["name"], "uploaded": True})
+    uploaded = [(folder, read_about(folder, session)) for folder in SHOPS_DIR.glob("shop-*")]
+    for folder, about in sorted(((f, a) for f, a in uploaded if a), key=lambda pair: pair[1].get("created_at", "")):
+        found.append({"id": folder.name, "name": about["name"], "uploaded": True})
     return found
+
+
+def sessions_with_stores():
+    """Visitors who have an uploaded shop on the disk."""
+    found = set()
+    for path in SHOPS_DIR.glob("shop-*/about.json"):
+        try:
+            found.add(json.loads(path.read_text(encoding="utf-8")).get("session", ""))
+        except OSError:
+            pass
+    return found - {""}
 
 
 # ------------------------------------------------------------------ upload, preview, accept
 
-def prepare(files):
+def prepare(files, session=""):
     """Import the files into a waiting folder and describe what was found."""
     clear_old_waiting()
     token = uuid.uuid4().hex
     folder = WAITING_DIR / token
     folder.mkdir(parents=True)
     try:
-        tables = importer.import_files(files, folder / "shop.db")
-        about = describe(tables, folder / "shop.db")
-        about["files"] = [name for name, _ in files]
+        if PUBLIC:
+            about = read_apart.read(files, folder)
+        else:
+            about = describe(importer.import_files(files, folder / "shop.db"), folder / "shop.db")
+        about["files"] = [name[:80] for name, _ in files]
+        about["session"] = session
         (folder / "about.json").write_text(json.dumps(about, ensure_ascii=False), encoding="utf-8")
     except Exception:
         shutil.rmtree(folder, ignore_errors=True)
@@ -118,12 +142,12 @@ def kind(column):
     return "text" if column["type"] == "TEXT" else "number"
 
 
-def accept(token, name):
+def accept(token, name, session=""):
     """Turn a previewed upload into a shop. Returns its store id."""
-    if not re.fullmatch(r"[0-9a-f]{32}", token) or not (WAITING_DIR / token / "about.json").exists():
-        raise importer.ImportProblem("This upload has expired. Please choose the file again.")
     folder = WAITING_DIR / token
-    about = json.loads((folder / "about.json").read_text(encoding="utf-8"))
+    about = read_about(folder, session) if re.fullmatch(r"[0-9a-f]{32}", token) else None
+    if about is None:
+        raise importer.ImportProblem("This upload has expired. Please choose the file again.")
     about["name"] = re.sub(r"\s+", " ", name).strip()[:40] or "My shop"
     about["created_at"] = datetime.now().isoformat(timespec="seconds")
     (folder / "about.json").write_text(json.dumps(about, ensure_ascii=False), encoding="utf-8")
@@ -133,23 +157,46 @@ def accept(token, name):
     return store_id
 
 
-def remove(store_id):
-    shop = shop_for(store_id)
+def remove(store_id, session=""):
+    shop = shop_for(store_id, session)
     if shop is None or shop.is_sample:
         return False
     shutil.rmtree(shop.db.parent, ignore_errors=True)
     return True
 
 
-def discard(token):
-    if re.fullmatch(r"[0-9a-f]{32}", token):
+def discard_all(session):
+    """Uploads a visitor previewed but never accepted."""
+    for folder in WAITING_DIR.glob("*"):
+        if read_about(folder, session):
+            shutil.rmtree(folder, ignore_errors=True)
+
+
+def discard(token, session=""):
+    if re.fullmatch(r"[0-9a-f]{32}", token) and read_about(WAITING_DIR / token, session):
         shutil.rmtree(WAITING_DIR / token, ignore_errors=True)
+
+
+def disk_used():
+    """Bytes used by all uploaded shops, accepted or waiting."""
+    total = 0
+    for base in (SHOPS_DIR, WAITING_DIR):
+        for file in base.rglob("*"):
+            try:
+                total += file.stat().st_size
+            except OSError:   # removed in this very moment
+                pass
+    return total
 
 
 def clear_old_waiting():
     if WAITING_DIR.exists():
         for folder in WAITING_DIR.iterdir():
-            if time.time() - folder.stat().st_mtime > WAITING_HOURS * 3600:
+            try:
+                old = time.time() - folder.stat().st_mtime > WAITING_HOURS * 3600
+            except OSError:   # accepted or removed in this very moment
+                continue
+            if old:
                 shutil.rmtree(folder, ignore_errors=True)
 
 

@@ -23,12 +23,12 @@ from datetime import date, datetime, time
 from html.parser import HTMLParser
 from pathlib import Path
 
-MAX_FILES = 8
-MAX_FILE_MB = 10
-MAX_UNZIPPED_MB = 120   # an .xlsx is a zip, so a tiny file can unpack into a huge one
+from visitors import MAX_CELLS, MAX_FILE_MB, MAX_FILES, MAX_ROWS, MAX_UNZIPPED_MB
+
+# MAX_FILES, MAX_FILE_MB, MAX_ROWS, MAX_CELLS and MAX_UNZIPPED_MB come from visitors.py, because they are smaller online.
+# An .xlsx is a zip, so a tiny file can unpack into a huge one.
 MAX_TABLES = 25
 MAX_COLUMNS = 60
-MAX_ROWS = 200_000
 
 EMPTY_WORDS = {"", "-", "--", "n/a", "#n/a", "null"}
 TOTAL_ROW = re.compile(r"(grand |sub ?|net )?totals?( amount)?\s*:?", re.IGNORECASE)
@@ -85,6 +85,11 @@ def read_file(filename, data):
     return read_csv(filename, stem, text)
 
 
+def too_many(filename, cells):
+    if cells > MAX_CELLS:
+        raise ImportProblem(f"{filename} has more than {MAX_CELLS:,} cells.")
+
+
 def decode(filename, data):
     if data.startswith((b"\xff\xfe", b"\xfe\xff")):
         return data.decode("utf-16", errors="replace")   # SQL Server saves its scripts like this
@@ -114,14 +119,19 @@ def read_zip(filename, stem, data):
     import openpyxl
     try:
         book = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-        sheets = []
+        sheets, cells = [], 0
         for sheet in book.worksheets:
             if sheet.sheet_state != "visible":
                 continue
             sheet.reset_dimensions()   # some exports store a wrong sheet size
             rows = []
             for row in sheet.iter_rows(values_only=True):
-                rows.append(list(row))
+                row = list(row)
+                while row and row[-1] is None:
+                    row.pop()
+                rows.append(row)
+                cells += len(row)
+                too_many(filename, cells)
                 if len(rows) > MAX_ROWS:
                     raise ImportProblem(f"{filename} has more than {MAX_ROWS:,} rows.")
             sheets.append((sheet.title, rows))
@@ -143,6 +153,7 @@ def read_old_excel(filename, stem, data):
     for sheet in book.sheets():
         if sheet.visibility:
             continue
+        too_many(filename, sheet.nrows * sheet.ncols)
         rows = []
         for r in range(sheet.nrows):
             row = []
@@ -263,6 +274,7 @@ def grid_to_table(name, grid, source):
         return None
 
     width = max(len(headings), max(len(r) for r in body))
+    too_many(source, width * len(body))   # one very long line makes every row that long
     headings += [None] * (width - len(headings))
     body = [list(r) + [None] * (width - len(r)) for r in body]
     keep = [i for i in range(width) if any(not is_blank(r[i]) for r in body)]
