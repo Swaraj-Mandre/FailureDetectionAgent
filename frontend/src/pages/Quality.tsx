@@ -49,7 +49,7 @@ export function Quality() {
       <header className="page-head">
         <div>
           <h1>Quality report</h1>
-          <p className="page-sub">The same questions asked to a plain single agent and to QueryMend, {data.repeats} runs each, marked against the known right answers.</p>
+          <p className="page-sub">The same questions asked to a plain single agent and to QueryMend, {data.repeats} runs each, marked against the known right answers. Measured on the sample shop.</p>
         </div>
       </header>
 

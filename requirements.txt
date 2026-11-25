@@ -9,3 +9,7 @@ langgraph==1.2.16
 langgraph-checkpoint-sqlite==3.1.2
 fastapi==0.165.0
 uvicorn==0.54.0
+python-multipart==0.0.34   # receives uploaded files
+openpyxl==3.1.5            # reads .xlsx
+xlrd==2.0.2                # reads old .xls
+defusedxml==0.7.1          # openpyxl uses it to refuse harmful XML

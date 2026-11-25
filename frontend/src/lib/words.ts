@@ -45,7 +45,7 @@ export function describe(step: Step): { title: string; detail: string; alarm: bo
     case "person":
       return t.includes("APPROVED")
         ? { title: "You allowed the personal data", detail: "", alarm: false }
-        : { title: "You hid the personal data", detail: "email and phone masked", alarm: false };
+        : { title: "You hid the personal data", detail: "personal columns masked", alarm: false };
     case "stop":
       return { title: "Wrote a safe answer with no guessed numbers", detail: "", alarm: true };
   }
@@ -74,12 +74,6 @@ export const FAILURE_NAME: Record<string, string> = {
 
 export function plural(n: number, word: string, many = `${word}s`) {
   return `${n} ${n === 1 ? word : many}`;
-}
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-export function month(iso: string) {
-  return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 }
 
 export function when(iso: string) {

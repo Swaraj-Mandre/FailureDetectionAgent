@@ -5,6 +5,7 @@
 The agents are exactly the ones in graph.py. This file only:
 - streams every step of a run to the browser as Server-Sent Events,
 - pauses and resumes the run for the privacy approval,
+- takes a shopkeeper's own files, shows what was found, and adds them as a new store,
 - serves the failure log, the evaluation results and the glossary,
 - serves the built frontend (frontend/dist) so one command runs everything.
 
@@ -12,7 +13,9 @@ Build the frontend once first: cd frontend && npm install && npm run build
 """
 import json
 import os
+import re
 import sqlite3
+import tempfile
 import threading
 import time
 import urllib.request
@@ -21,28 +24,31 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import AIMessage, ToolMessage
+from langgraph.errors import GraphRecursionError
 from langgraph.types import Command
 from pydantic import BaseModel
 
 import agents
+import importer
+import shops
 from config import CHAT_MODEL, EMBED_MODEL, REPO_DIR, RETRY_BUDGET, SHOP_DB, STATE_DIR
 from graph import build_team, team_turn
-from memory import FailureLog, load_terms, make_checkpointer, make_store, open_db, save_term
+from memory import FailureLog, forget_terms, load_terms, make_checkpointer, make_store, open_db, save_term
 from sql_tool import reset_faults
 
+MAX_STEPS = 60   # the model can keep calling the tool without ever answering; stop it instead of blocking everyone
 FRONTEND_DIST = REPO_DIR / "frontend" / "dist"
 EVAL_RESULTS = REPO_DIR / "traces" / "eval" / "results.json"
 APP_DB = STATE_DIR / "app.db"   # conversation list and finished turns, for the history sidebar
 OLLAMA_URL = os.environ.get("OLLAMA_HOST_URL", "http://127.0.0.1:11434")
 
-USERS = {
-    "owner_pune": "Pune store",
-    "owner_mumbai": "Mumbai store",
-}
+# large uploads are kept on disk while they arrive; keep them in the project folder, not the system temp folder
+(STATE_DIR / "tmp").mkdir(parents=True, exist_ok=True)
+tempfile.tempdir = str(STATE_DIR / "tmp")
 
 FAULTS = {
     "corrupt_once": "Prices 100x too big, once",
@@ -84,9 +90,16 @@ pending = {}   # thread_id -> the turn being built while a run is paused for app
 def team_for(monitor_on, user_id):
     key = (monitor_on, user_id)
     if key not in teams:
-        teams[key] = build_team(checkpointer=checkpointer, store=store, user_id=user_id,
-                                monitor_on=monitor_on, failure_log=failure_log)
+        teams[key] = build_team(checkpointer=checkpointer, store=store, user_id=user_id, monitor_on=monitor_on,
+                                failure_log=failure_log, shop=store_or_404(user_id))
     return teams[key]
+
+
+def store_or_404(user_id):
+    shop = shops.shop_for(user_id)
+    if shop is None:
+        raise HTTPException(404, "Unknown store. It may have been removed.")
+    return shop
 
 
 def set_fault(fault):
@@ -123,7 +136,8 @@ def events_for(node, update, turn):
             if parsed:
                 columns, rows = parsed
                 # the preview never shows personal columns; only the approved answer may
-                hidden = [i for i, c in enumerate(columns) if c in agents.sensitive_columns(columns)]
+                personal = agents.sensitive_columns(columns, rows)
+                hidden = [i for i, c in enumerate(columns) if c in personal]
                 rows = [["(hidden)" if i in hidden else v for i, v in enumerate(r)] for r in rows]
                 preview = {"columns": columns, "rows": rows[:20], "total": len(rows), "hidden": len(hidden)}
                 turn["results"].append(preview)
@@ -182,7 +196,8 @@ def answer_table(messages, outcome):
         return None   # a single number is already in the answer
     columns, rows = parsed
     if outcome != "approved":
-        hidden = [i for i, c in enumerate(columns) if c in agents.sensitive_columns(columns)]
+        personal = agents.sensitive_columns(columns, rows)
+        hidden = [i for i, c in enumerate(columns) if c in personal]
         rows = [["(hidden)" if i in hidden else v for i, v in enumerate(r)] for r in rows]
     return {"columns": columns, "rows": rows[:20], "total": len(rows), "hidden": 0}
 
@@ -207,6 +222,8 @@ def guarded(stream):
         return
     try:
         yield from stream
+    except GraphRecursionError:
+        yield sse("error", message="This question took too many steps, so it was stopped. Please ask it in a simpler way.")
     except Exception as exc:   # the page shows it; the server keeps running
         yield sse("error", message=f"{type(exc).__name__}: {exc}")
     finally:
@@ -230,6 +247,11 @@ class AskBody(BaseModel):
 class ResumeBody(BaseModel):
     thread_id: str
     decision: str   # "approve" or "reject"
+
+
+class AcceptBody(BaseModel):
+    token: str
+    name: str
 
 
 class TermBody(BaseModel):
@@ -257,40 +279,105 @@ def status():
 @app.get("/api/setup")
 def setup():
     return {
-        "users": [{"id": k, "name": v} for k, v in USERS.items()],
+        "users": shops.stores(),
         "faults": [{"id": k, "name": v} for k, v in FAULTS.items()],
-        "examples": EXAMPLES,
         "retry_budget": RETRY_BUDGET,
     }
 
 
 @app.get("/api/shop")
-def shop():
-    """A few facts about the shop database for the welcome screen."""
+def shop(user_id: str = "owner_pune"):
+    """A few facts about the store, and questions to start with, for the welcome screen."""
+    chosen = store_or_404(user_id)
+    if not chosen.is_sample:
+        about = chosen.about
+        return {"name": chosen.name, "uploaded": True, "facts": about["facts"], "examples": about["questions"],
+                "files": about["files"], "tables": [{"name": t["name"], "rows": t["rows"]} for t in about["tables"]]}
     with sqlite3.connect(f"file:{SHOP_DB}?mode=ro", uri=True) as conn:
         count = lambda table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         first, last = conn.execute("SELECT MIN(order_date), MAX(order_date) FROM orders").fetchone()
-        return {"name": "Sahyadri Stores", "customers": count("customers"), "products": count("products"),
-                "orders": count("orders"), "first_order": first, "last_order": last}
+        facts = [{"label": t.capitalize(), "value": f"{count(t):,}"} for t in ("customers", "products", "orders")]
+    facts.append({"label": "Period", "value": f"{shops.month_name(first, short=True)} to {shops.month_name(last, short=True)}"})
+    return {"name": chosen.name, "uploaded": False, "facts": facts, "examples": EXAMPLES, "files": [], "tables": []}
+
+
+@app.post("/api/shops/preview")
+def preview_upload(files: list[UploadFile] = File(...)):
+    """Read the chosen files and show what was found. Nothing is added until the person accepts it."""
+    if len(files) > importer.MAX_FILES:
+        raise HTTPException(400, f"Choose at most {importer.MAX_FILES} files at a time.")
+    try:
+        # one byte over the limit is enough for the importer to refuse a file that is too big
+        token, about = shops.prepare([(f.filename or "file", f.file.read(importer.MAX_FILE_MB * 1024 * 1024 + 1)) for f in files])
+    except importer.ImportProblem as problem:
+        raise HTTPException(400, str(problem))
+    return {"token": token, "name": suggested_name(files[0].filename or ""), "files": about["files"],
+            "questions": about["questions"], "tables": shops.preview_tables(token, about)}
+
+
+def suggested_name(filename):
+    words = re.sub(r"[_\-.]+", " ", Path(filename).stem).strip()
+    return (words[:1].upper() + words[1:])[:40] or "My shop"
+
+
+@app.post("/api/shops")
+def accept_upload(body: AcceptBody):
+    try:
+        store_id = shops.accept(body.token, body.name)
+    except importer.ImportProblem as problem:
+        raise HTTPException(400, str(problem))
+    return {"id": store_id, "users": shops.stores()}
+
+
+@app.delete("/api/shops/preview/{token}")
+def discard_upload(token: str):
+    shops.discard(token)
+    return {"ok": True}
+
+
+@app.delete("/api/shops/{store_id}")
+def remove_shop(store_id: str):
+    """Remove an uploaded shop and everything that was said about it. The sample stores cannot be removed."""
+    chosen = store_or_404(store_id)
+    if chosen.is_sample:
+        raise HTTPException(400, "The sample stores cannot be removed.")
+    if not run_lock.acquire(blocking=False):
+        raise HTTPException(409, "A question is still running. Wait for it to finish.")
+    try:
+        threads = [r[0] for r in app_db.execute("SELECT id FROM conversations WHERE user_id = ?", (store_id,))]
+        for thread_id in threads:
+            pending.pop(thread_id, None)
+            checkpointer.delete_thread(thread_id)
+            failure_log.forget(thread_id)
+            app_db.execute("DELETE FROM turns WHERE thread_id = ?", (thread_id,))
+        app_db.execute("DELETE FROM conversations WHERE user_id = ?", (store_id,))
+        forget_terms(store, store_id)
+        for key in [k for k in teams if k[1] == store_id]:
+            del teams[key]
+        shops.remove(store_id)
+    finally:
+        run_lock.release()
+    return {"users": shops.stores()}
 
 
 @app.post("/api/ask")
 def ask(body: AskBody):
-    if body.user_id not in USERS:
-        raise HTTPException(400, "Unknown store.")
     if body.fault and body.fault not in FAULTS:
         raise HTTPException(400, "Unknown failure type.")
     thread_id = body.thread_id or f"web-{uuid.uuid4().hex[:10]}"
-    if not app_db.execute("SELECT 1 FROM conversations WHERE id = ?", (thread_id,)).fetchone():
+    # a conversation stays with the store it was started in, so two shops never mix in one thread
+    started_in = app_db.execute("SELECT user_id FROM conversations WHERE id = ?", (thread_id,)).fetchone()
+    user_id = started_in[0] if started_in else body.user_id
+    team = team_for(body.monitor_on, user_id)
+    if not started_in:
         app_db.execute("INSERT INTO conversations VALUES (?, ?, ?, ?)",
-                       (thread_id, body.question[:80], body.user_id, datetime.now().isoformat(timespec="seconds")))
-    team = team_for(body.monitor_on, body.user_id)
-    config = {"configurable": {"thread_id": thread_id}}
+                       (thread_id, body.question[:80], user_id, datetime.now().isoformat(timespec="seconds")))
+    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": MAX_STEPS}
 
     def stream():
         state = team.get_state(config).values
         turn = {"thread_id": thread_id, "question": body.question, "fault": body.fault,
-                "monitor_on": body.monitor_on, "user_id": body.user_id, "started": time.time(),
+                "monitor_on": body.monitor_on, "user_id": user_id, "started": time.time(),
                 "seen": len(state.get("messages", [])), "steps": [], "queries": [], "results": []}
         yield sse("start", thread_id=thread_id)
         set_fault(body.fault)
@@ -308,7 +395,7 @@ def resume(body: ResumeBody):
     if body.thread_id not in pending or body.decision not in ("approve", "reject"):
         raise HTTPException(400, "Nothing is waiting for approval in this conversation.")
     team, turn = pending.pop(body.thread_id)
-    config = {"configurable": {"thread_id": body.thread_id}}
+    config = {"configurable": {"thread_id": body.thread_id}, "recursion_limit": MAX_STEPS}
 
     def stream():
         yield from run(team, Command(resume=body.decision), config, turn)
@@ -377,15 +464,15 @@ def evaluation():
 
 @app.get("/api/glossary/{user_id}")
 def glossary(user_id: str):
-    if user_id not in USERS:
-        raise HTTPException(404, "Unknown store.")
+    store_or_404(user_id)
     return [{"term": t, "meaning": m} for t, m in sorted(load_terms(store, user_id).items())]
 
 
 @app.post("/api/glossary/{user_id}")
 def add_term(user_id: str, body: TermBody):
-    if user_id not in USERS or not body.term.strip() or not body.meaning.strip():
-        raise HTTPException(400, "A store, a word and its meaning are all needed.")
+    store_or_404(user_id)
+    if not body.term.strip() or not body.meaning.strip():
+        raise HTTPException(400, "A word and its meaning are both needed.")
     save_term(store, user_id, body.term, body.meaning)
     return glossary(user_id)
 
@@ -397,8 +484,13 @@ if FRONTEND_DIST.exists():
 
     @app.get("/{path:path}")
     def page(path: str):
-        file = FRONTEND_DIST / path
-        return FileResponse(file if path and file.is_file() else FRONTEND_DIST / "index.html")
+        try:
+            file = (FRONTEND_DIST / path).resolve()
+        except (ValueError, OSError):   # not a possible file name
+            return FileResponse(FRONTEND_DIST / "index.html")
+        # serve only files inside the built frontend; a path with .. in it must not reach the rest of the disk
+        inside = file.is_relative_to(FRONTEND_DIST.resolve())
+        return FileResponse(file if inside and file.is_file() else FRONTEND_DIST / "index.html")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,8 @@ TA2_DIR = Path(__file__).resolve().parent
 REPO_DIR = TA2_DIR.parent
 
 SHOP_DB = REPO_DIR / "data" / "shop.db"
-CORPUS_FILE = TA2_DIR / "corpus" / "error_guide.md"
+CORPUS_FILE = TA2_DIR / "corpus" / "error_guide.md"             # for the sample shop
+GENERAL_GUIDE_FILE = TA2_DIR / "corpus" / "any_shop_guide.md"   # for uploaded shops
 
 # Everything the agent writes at run time lives in ta2/state/ (ignored by git).
 STATE_DIR = TA2_DIR / "state"
@@ -21,6 +22,7 @@ EMBED_MODEL = "nomic-embed-text"
 
 RETRY_BUDGET = 3   # recovery attempts per question before handing over to a human
 RAG_K = 3          # error-guide sections retrieved for each piece of advice
+UPLOAD_CONTEXT = 8192   # model context for uploaded shops, whose table list can be long
 MODEL_RETRIES = 3  # attempts per model call if the local Ollama server hiccups
 DEFAULT_USER = "owner_pune"   # whose glossary to use when none is given
 

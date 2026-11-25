@@ -48,6 +48,11 @@ def load_terms(store, user_id):
     return {item.key: item.value["meaning"] for item in store.search(glossary_namespace(user_id), limit=100)}
 
 
+def forget_terms(store, user_id):
+    for term in load_terms(store, user_id):
+        store.delete(glossary_namespace(user_id), term)
+
+
 def glossary_text(store, user_id):
     terms = load_terms(store, user_id)
     if not terms:
@@ -108,6 +113,9 @@ class FailureLog:
     def counts_by_type(self):
         return self.conn.execute(
             "SELECT failure_type, COUNT(*) FROM failure_log GROUP BY failure_type ORDER BY 2 DESC").fetchall()
+
+    def forget(self, thread_id):
+        self.conn.execute("DELETE FROM failure_log WHERE thread_id = ?", (thread_id,))
 
     def clear(self):
         self.conn.execute("DELETE FROM failure_log")

@@ -1,7 +1,7 @@
 // App-wide state: which store, the test lab switches, the technical details switch,
 // server status and the conversation list.
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, type Conversation, type Setup, type Shop, type Status } from "./api";
+import { api, type Conversation, type Setup, type Shop, type Status, type Store } from "./api";
 
 interface Settings {
   setup: Setup | null;
@@ -9,6 +9,10 @@ interface Settings {
   shop: Shop | null;
   userId: string;
   setUserId: (id: string) => void;
+  setUsers: (users: Store[]) => void;
+  upload: { files: File[] } | null;       // the upload window is open, with these files already chosen
+  openUpload: (files?: File[]) => void;
+  closeUpload: () => void;
   monitorOn: boolean;
   setMonitorOn: (on: boolean) => void;
   fault: string | null;
@@ -19,7 +23,9 @@ interface Settings {
   refreshConversations: () => void;
 }
 
-// The technical switch is remembered in this browser only. Storage can be blocked, so both calls are guarded.
+const DEFAULT_STORE = "owner_pune";
+
+// The technical switch and the chosen store are remembered in this browser only. Storage can be blocked, so both calls are guarded.
 const TECH_KEY = "querymend.technical";
 // A link ending in #how opens with the details on, for sharing the full trail of one answer.
 const readTechnical = () => {
@@ -28,18 +34,28 @@ const readTechnical = () => {
 };
 const saveTechnical = (on: boolean) => { try { localStorage.setItem(TECH_KEY, on ? "1" : "0"); } catch { /* not saved */ } };
 
+const STORE_KEY = "querymend.store";
+const readStore = () => { try { return localStorage.getItem(STORE_KEY) ?? DEFAULT_STORE; } catch { return DEFAULT_STORE; } };
+const saveStore = (id: string) => { try { localStorage.setItem(STORE_KEY, id); } catch { /* not saved */ } };
+
 const SettingsContext = createContext<Settings | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [setup, setSetup] = useState<Setup | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
-  const [userId, setUserId] = useState("owner_pune");
+  const [userId, setUserIdState] = useState(readStore);
+  const [upload, setUpload] = useState<{ files: File[] } | null>(null);
   const [monitorOn, setMonitorOn] = useState(true);
   const [fault, setFault] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [technical, setTechnicalState] = useState(readTechnical);
   const setTechnical = (on: boolean) => { setTechnicalState(on); saveTechnical(on); };
+
+  const setUserId = useCallback((id: string) => { setUserIdState(id); saveStore(id); }, []);
+  const setUsers = useCallback((users: Store[]) => setSetup((s) => (s ? { ...s, users } : s)), []);
+  const openUpload = useCallback((files: File[] = []) => setUpload({ files }), []);
+  const closeUpload = useCallback(() => setUpload(null), []);
 
   const refreshConversations = useCallback(() => {
     api.conversations().then(setConversations).catch(() => setConversations([]));
@@ -47,7 +63,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     api.setup().then(setSetup).catch(() => setSetup(null));
-    api.shop().then(setShop).catch(() => setShop(null));
     refreshConversations();
     const check = () => api.status().then(setStatus).catch(() => setStatus(null));
     check();
@@ -55,8 +70,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(timer);
   }, [refreshConversations]);
 
+  // The remembered store may have been removed since.
+  useEffect(() => {
+    if (setup && !setup.users.some((u) => u.id === userId)) setUserId(DEFAULT_STORE);
+  }, [setup, userId, setUserId]);
+
+  useEffect(() => {
+    let current = true;
+    setShop(null);
+    api.shop(userId).then((s) => current && setShop(s)).catch(() => undefined);
+    return () => { current = false; };
+  }, [userId]);
+
   return (
-    <SettingsContext.Provider value={{ setup, status, shop, userId, setUserId, monitorOn, setMonitorOn,
+    <SettingsContext.Provider value={{ setup, status, shop, userId, setUserId, setUsers, upload, openUpload, closeUpload, monitorOn, setMonitorOn,
       fault, setFault, technical, setTechnical, conversations, refreshConversations }}>
       {children}
     </SettingsContext.Provider>

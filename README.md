@@ -200,9 +200,24 @@ Then open http://127.0.0.1:8000. Ask anything, watch each agent work live, plant
 
 To work on the frontend: `cd frontend`, `npm install`, `npm run dev` (opens on port 5173 and passes `/api` calls to the Python server), then `npm run build` when done.
 
-Personal data never reaches the page before a person approves it: the live data preview hides email and phone columns, and only an approved answer shows them.
+Personal data never reaches the page before a person approves it: the live data preview hides private columns (phone, email, address, GSTIN and similar), and only an approved answer shows them.
 
 </details>
+
+### Use your own shop data
+
+Press **+** in the question box (or drop a file on it) and choose a file. QueryMend shows the tables it found, what it cleaned and which columns are private. Press **Use this data** and the shop appears in the store list.
+
+| File | Notes |
+|:--|:--|
+| Excel `.xlsx` `.xls` | Title lines, total rows, Rs signs and dd/mm/yyyy dates are handled. Billing apps such as Vyapar, Tally and Busy can export this |
+| `.csv` | Several files at once are linked when they share a column, for example stock and bills |
+| `.sql` backup | MySQL, SQLite and SQL Server exports. The file is **read, never run**: only table definitions, rows and links are taken from it |
+| SQLite `.db` | Opened read-only and copied |
+
+Up to 8 files, 10 MB each. Four ready-made files to try are in [data/sample_uploads](data/sample_uploads). Each shop gets its own database, prompt, Monitor limits, saved words and conversations, all worked out from the file. Removing a shop deletes all of it. The two sample stores work exactly as before, and every number in the Results section is measured on them.
+
+**How well it works:** we tuned on four made-up shops until all 31 test questions were right, then asked 12 questions about a fifth shop it had never seen: 9 right, 3 wrong. So compare one important total with your own report first. The Monitor's checks for uploaded shops are more general than for the sample shop.
 
 **Or run everything in the terminal** (each demo saves its output to `traces/`):
 
@@ -258,7 +273,10 @@ FailureDetectionAgent/
 │   ├── graph.py       the team graph, retry budget, privacy gate
 │   ├── agents.py      Executor rules, Monitor checks, Recovery decisions
 │   ├── memory.py      checkpointer, store, glossary tool, failure log
-│   ├── rag.py         Chroma index over corpus/error_guide.md
+│   ├── rag.py         Chroma index over the error guides in corpus/
+│   ├── importer.py    reads Excel, CSV, SQL and SQLite files into a clean database
+│   ├── shops.py       what the agents need to know about an uploaded shop
+│   ├── personal.py    which columns and values count as personal data
 │   ├── evaluate.py    PBA 1 vs PBA 2, failure injection, containment
 │   └── server.py      the web API: live streaming, approval, logs, results
 ├── frontend/        the React web app (built copy in frontend/dist)
@@ -284,7 +302,8 @@ FailureDetectionAgent/
 - **Small samples:** 3 runs per case, 10 for containment. At temperature 0 they show stability more than spread.
 - **The rules know only what we wrote down.** A wrong number inside the limits still gets through.
 - **The model can invent stand-ins** for data that does not exist (ask for loyalty points). Neither version catches it.
-- **One small model, one database.** A bigger model makes fewer mistakes, so the cost gap would shrink.
+- **Uploaded shops are harder.** 9 of 12 questions right on a shop it had never seen. The wrong ones were plausible numbers inside the limits.
+- **One small model.** A bigger model makes fewer mistakes, so the cost gap would shrink.
 
 ---
 

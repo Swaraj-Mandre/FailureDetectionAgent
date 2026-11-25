@@ -282,14 +282,14 @@ svg { flex-shrink: 0; }
 .armed { display: flex; gap: var(--s2); margin-bottom: var(--s2); }
 .composer {
   display: flex; align-items: flex-end; gap: var(--s2);
-  padding: var(--s2) var(--s2) var(--s2) var(--s4);
+  padding: var(--s2);
   border: 1px solid var(--line-strong); border-radius: var(--r-lg);
   background: var(--surface);
   box-shadow: 0 2px 10px rgba(20, 33, 61, 0.06);
 }
 .composer:focus-within { border-color: var(--brand); }
 .composer textarea { flex: 1; border: 0; outline: 0; resize: none; padding: 7px 0; background: transparent; line-height: 1.5; }
-.composer textarea::placeholder { color: var(--faint); }
+.composer textarea::placeholder { color: var(--faint); white-space: nowrap; }
 .send { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--brand); color: #fff; }
 .send:disabled { background: var(--line-strong); cursor: not-allowed; }
 
@@ -424,3 +424,53 @@ table.log, table.compare, table.mini { width: 100%; border-collapse: collapse; f
   .tour-part { grid-template-columns: 32px minmax(0, 1fr); }
   .tour-run { grid-column: 2; justify-self: start; }
 }
+
+/* ------------------------------------------------------------------ adding a shop */
+
+.add {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%; color: var(--ink-soft);
+}
+.add:hover:not(:disabled) { background: var(--surface-sunk); color: var(--brand); }
+.add:disabled { opacity: 0.4; cursor: not-allowed; }
+.composer.over { border-color: var(--executor); background: var(--executor-soft); }
+
+.store-actions { display: flex; gap: var(--s4); margin-top: var(--s2); }
+.store-actions button { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-xs); font-weight: 600; color: var(--executor); }
+.store-actions button:hover { color: var(--brand); text-decoration: underline; }
+.store-problem { margin-top: var(--s2); font-size: var(--text-xs); color: var(--danger); }
+.welcome-foot { margin-top: var(--s6); font-size: var(--text-sm); color: var(--muted); max-width: 64ch; }
+
+.upload {
+  width: min(820px, calc(100vw - 2 * var(--s4))); max-height: calc(100vh - 2 * var(--s8));
+  padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+  background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); overflow: hidden;
+}
+.upload[open] { display: flex; flex-direction: column; }
+.upload::backdrop { background: rgba(20, 33, 61, 0.35); }
+.upload-head { display: flex; align-items: center; justify-content: space-between; padding: var(--s5) var(--s6) var(--s3); }
+.upload-head h2 { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.02em; }
+.upload-body { display: grid; gap: var(--s5); padding: var(--s2) var(--s6) var(--s6); overflow-y: auto; min-height: 0; }
+.upload-body > * { min-width: 0; }
+.drop {
+  display: grid; justify-items: center; gap: var(--s2); padding: var(--s10) var(--s6);
+  border: 1.5px dashed var(--line-strong); border-radius: var(--r-md); color: var(--ink-soft); background: var(--page);
+}
+.drop:hover:not(:disabled), .drop.over { border-color: var(--executor); background: var(--executor-soft); }
+.drop small, .upload-note { font-size: var(--text-sm); color: var(--muted); }
+.upload-name input { width: min(360px, 100%); padding: var(--s2) var(--s3); border: 1px solid var(--line-strong); border-radius: var(--r-sm); }
+.upload-name .rail-label { display: block; }
+.found { display: grid; gap: var(--s2); min-width: 0; }
+.found-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); font-size: var(--text-sm); }
+.found-head span { color: var(--muted); }
+.found .preview { overflow-x: auto; }
+.found th { white-space: nowrap; vertical-align: top; }
+.found th small { display: flex; align-items: center; gap: 3px; font-weight: 400; color: var(--faint); }
+.found td { white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.found-join { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--recovery); }
+.found-notes { display: grid; gap: 2px; font-size: var(--text-xs); color: var(--monitor); }
+.upload-foot {
+  display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--s3);
+  padding: var(--s4) var(--s6); border-top: 1px solid var(--line); background: var(--surface);
+}
+.upload-foot p { flex: 1 1 220px; font-size: var(--text-xs); color: var(--muted); }

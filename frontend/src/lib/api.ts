@@ -23,10 +23,10 @@ export interface Turn {
   running?: boolean;
 }
 
+export interface Store { id: string; name: string; uploaded: boolean }
 export interface Setup {
-  users: { id: string; name: string }[];
+  users: Store[];
   faults: { id: string; name: string }[];
-  examples: string[];
   retry_budget: number;
 }
 export interface Status {
@@ -34,7 +34,15 @@ export interface Status {
   embed_model: string; embed_model_ready: boolean; database: boolean;
 }
 export interface Shop {
-  name: string; customers: number; products: number; orders: number; first_order: string; last_order: string;
+  name: string; uploaded: boolean; facts: { label: string; value: string }[]; examples: string[];
+  files: string[]; tables: { name: string; rows: number }[];
+}
+export interface UploadPreview {
+  token: string; name: string; files: string[]; questions: string[];
+  tables: {
+    name: string; source: string; rows: number; notes: string[]; joins: string[];
+    columns: { name: string; type: string; personal: boolean }[]; sample: (string | number | null)[][];
+  }[];
 }
 export interface Conversation { id: string; title: string; user_id: string; created_at: string; turns: number }
 export interface FailureRow {
@@ -56,8 +64,11 @@ async function get<T>(path: string): Promise<T> {
   return reply.json();
 }
 
-async function send<T>(path: string, body: unknown): Promise<T> {
-  const reply = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+async function send<T>(path: string, body: unknown, method = "POST"): Promise<T> {
+  const form = body instanceof FormData;   // files; the browser sets the header itself
+  const reply = await fetch(path, {
+    method, headers: form ? undefined : { "Content-Type": "application/json" }, body: form ? body : JSON.stringify(body),
+  });
   if (!reply.ok) throw new Error((await reply.json().catch(() => null))?.detail ?? reply.statusText);
   return reply.json();
 }
@@ -65,7 +76,15 @@ async function send<T>(path: string, body: unknown): Promise<T> {
 export const api = {
   status: () => get<Status>("/api/status"),
   setup: () => get<Setup>("/api/setup"),
-  shop: () => get<Shop>("/api/shop"),
+  shop: (user: string) => get<Shop>(`/api/shop?user_id=${encodeURIComponent(user)}`),
+  previewUpload: (files: File[]) => {
+    const form = new FormData();
+    files.forEach((f) => form.append("files", f));
+    return send<UploadPreview>("/api/shops/preview", form);
+  },
+  acceptUpload: (token: string, name: string) => send<{ id: string; users: Store[] }>("/api/shops", { token, name }),
+  discardUpload: (token: string) => send(`/api/shops/preview/${token}`, {}, "DELETE"),
+  removeShop: (id: string) => send<{ users: Store[] }>(`/api/shops/${id}`, {}, "DELETE"),
   conversations: () => get<Conversation[]>("/api/conversations"),
   conversation: (id: string) => get<Turn[]>(`/api/conversations/${id}`),
   failures: () => get<Failures>("/api/failures"),

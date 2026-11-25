@@ -11,6 +11,11 @@ venv/
 *.sqlite
 chroma_db/
 
+# Files shopkeepers upload are their own data and never go to git
+ta2/state/shops/
+ta2/state/shops_waiting/
+ta2/state/tmp/
+
 # Editors and OS
 .vscode/
 .idea/

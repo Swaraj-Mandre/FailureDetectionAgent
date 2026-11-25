@@ -17,6 +17,7 @@ import sqlite3
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from config import RETRY_BUDGET, SHOP_DB
+from personal import personal_columns
 from rag import advise
 from single_agent import classify, is_failure, latest_tool_results, sql_for
 
@@ -27,7 +28,6 @@ EXECUTOR_RULES = """
 - Messages from the monitor or recovery agent are about your last attempt. Follow their advice
   and call run_sql again. Never repeat a number the monitor has quarantined."""
 
-SENSITIVE_WORDS = ("email", "phone")
 QUARANTINE_TEXT = "[Quarantined by the Monitor: this result failed a sanity check and must not be used.]"
 
 
@@ -37,8 +37,10 @@ def ok(event):
 
 # ------------------------------------------------------------------ Monitor
 
-def load_limits():
+def load_limits(shop=None):
     """What is physically possible in this shop. Worked out from the data, not typed in."""
+    if shop is not None and not shop.is_sample:
+        return shop.about["limits"]   # worked out when the data was uploaded
     with sqlite3.connect(f"file:{SHOP_DB}?mode=ro", uri=True) as conn:
         gross = conn.execute("SELECT SUM(oi.quantity * p.unit_price) FROM order_items oi "
                              "JOIN products p ON p.product_id = oi.product_id").fetchone()[0]
@@ -67,25 +69,35 @@ def to_number(cell):
         return None
 
 
-def sanity_problems(columns, rows, limits):
-    """Reasons why a result cannot be true. Empty list means it looks fine."""
+def is_count(name, limits):
+    """Whether a result column counts rows, going by its name."""
+    if "columns" in limits:   # uploaded shop: its own columns, and words such as discount and account, are not counts
+        return name not in limits["columns"] and bool(re.search(r"(?<!dis)(?<!ac)count|num|number", name))
+    return bool(re.search(r"count|num|number", name))
+
+
+def sanity_problems(columns, rows, limits, labels=()):
+    """Reasons why a result cannot be true. Empty list means it looks fine.
+    labels: columns whose digits are not amounts, such as phone numbers and bar codes."""
     problems = []
-    per_order = any(c.lower().endswith("order_id") for c in columns)   # one row = one order
+    uploaded = "columns" in limits
+    whole = "everything in the shop's data added up" if uploaded else "the shop's all-time gross sales"
+    per_order = not uploaded and any(c.lower().endswith("order_id") for c in columns)   # one row = one order
     for row in rows:
         for column, cell in zip(columns, row):
             value, name = to_number(cell), column.lower()
             # ids, phone numbers and the like are labels, not amounts
-            if value is None or name == "id" or name.endswith("_id") or "phone" in name:
+            if value is None or name == "id" or name.endswith("_id") or "phone" in name or column in labels:
                 continue
-            if value < 0:
+            if value < 0 and not limits.get("negative_ok"):
                 problems.append(f"{column} = {cell} is negative")
             elif value > limits["gross"]:
-                problems.append(f"{column} = {cell} is more than the shop's all-time gross sales "
+                problems.append(f"{column} = {cell} is more than {whole} "
                                 f"(Rs {limits['gross']:,.0f})")
             elif per_order and value > limits["max_order"]:
                 problems.append(f"{column} = {cell} is more than the largest real order "
                                 f"(Rs {limits['max_order']:,.0f})")
-            elif re.search(r"count|num|number", name) and value > limits["max_count"]:
+            elif is_count(name, limits) and value > limits["max_count"]:
                 problems.append(f"{column} = {cell} is more than the largest table ({limits['max_count']} rows)")
     return problems[:3]
 
@@ -135,8 +147,8 @@ def ungrouped_columns(sql):
             and not re.fullmatch(r"[\d.]+|'[^']*'", item)]
 
 
-def sensitive_columns(columns):
-    return [c for c in columns if any(word in c.lower() for word in SENSITIVE_WORDS)]
+def sensitive_columns(columns, rows=()):
+    return personal_columns(columns, rows)
 
 
 def check_tool_results(messages, limits):
@@ -166,7 +178,14 @@ def check_tool_results(messages, limits):
                                 "sql": sql, "group_by": names},
                     "last_problem": "the query was missing a GROUP BY, so its numbers were not used.",
                     "events": [f"monitor: silent bad result quarantined ({detail})"]}
-        problems = sanity_problems(columns, rows, limits)
+        personal = sensitive_columns(columns, rows)
+        allowed, labels = limits, ()
+        if "columns" in limits:   # an uploaded shop
+            if " - " in sql:      # a difference, such as profit, may go below zero
+                allowed = {**limits, "negative_ok": True}
+            added_up = re.search(r"\b(sum|avg|count|total)\s*\(", sql, re.IGNORECASE)
+            labels = [c for c in columns if c.lower() in limits["labels"] or (c in personal and not added_up)]
+        problems = sanity_problems(columns, rows, allowed, labels)
         if problems:
             # Containment: swap the bad rows out of the shared history so no agent can reuse them.
             quarantined = ToolMessage(content=QUARANTINE_TEXT, tool_call_id=message.tool_call_id,
@@ -176,9 +195,9 @@ def check_tool_results(messages, limits):
                     "verdict": {"status": "failure", "kind": "bad_result", "detail": detail, "sql": sql},
                     "last_problem": "the result failed the Monitor's sanity check, so it was not used.",
                     "events": [f"monitor: silent bad result quarantined ({detail})"]}
-        if sensitive_columns(columns):
-            return {"verdict": {"status": "needs_approval", "columns": sensitive_columns(columns)},
-                    "events": [f"monitor: personal data in result {sensitive_columns(columns)}, asking a person"]}
+        if personal:
+            return {"verdict": {"status": "needs_approval", "columns": personal},
+                    "events": [f"monitor: personal data in result {personal}, asking a person"]}
     return ok("monitor: result looks fine")
 
 
@@ -249,8 +268,10 @@ def mask_sensitive(text, columns_to_hide):
 
 # ------------------------------------------------------------------ Recovery
 
-def decide_recovery(verdict, retries_left):
-    """What Recovery does next. Returns (next_status, retries_left, advice, guide_sections)."""
+def decide_recovery(verdict, retries_left, guide_for=None):
+    """What Recovery does next. Returns (next_status, retries_left, advice, guide_sections).
+    guide_for: which guide and shop the advice is about (empty for the sample shop)."""
+    guide_for = guide_for or {}
     kind = verdict["kind"]
     if kind in ("unsafe", "unavailable"):
         return "stop", retries_left, None, []
@@ -267,9 +288,9 @@ def decide_recovery(verdict, retries_left):
     if kind == "answer_mismatch":
         return "retry", retries_left, f"Your answer must quote the exact number from the rows: {verdict['detail']}.", []
     if kind == "bad_result":
-        advice, sections = advise(f"Suspicious numbers, silent failure: {verdict['detail']}", verdict["sql"])
+        advice, sections = advise(f"Suspicious numbers, silent failure: {verdict['detail']}", verdict["sql"], **guide_for)
         return "retry", retries_left, f"The last result was quarantined. Run the query again. {advice}", sections
-    advice, sections = advise(verdict["detail"], verdict["sql"])
+    advice, sections = advise(verdict["detail"], verdict["sql"], **guide_for)
     return "retry", retries_left, advice, sections
 
 

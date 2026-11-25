@@ -23,10 +23,11 @@ from langgraph.prebuilt import ToolNode
 from langgraph.types import interrupt
 
 import agents
-from config import CHAT_MODEL, DEFAULT_USER, MODEL_RETRIES, RETRY_BUDGET
+import shops
+from config import CHAT_MODEL, DEFAULT_USER, MODEL_RETRIES, RETRY_BUDGET, UPLOAD_CONTEXT
 from memory import FailureLog, glossary_text, make_checkpointer, make_glossary_tool
 from single_agent import SYSTEM_PROMPT, latest_tool_results
-from sql_tool import run_sql
+from sql_tool import make_run_sql, run_sql
 
 
 class TeamState(MessagesState):
@@ -42,20 +43,27 @@ def team_turn(question):
             "verdict": {}, "last_problem": "", "events": [f"user: {question}"]}
 
 
-def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=True, failure_log=None):
-    """monitor_on=False turns the Monitor into a pass-through, for the containment demo."""
+def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=True, failure_log=None,
+               shop=shops.SAMPLE):
+    """monitor_on=False turns the Monitor into a pass-through, for the containment demo.
+    shop decides which data, prompt, limits and error guide the team works with."""
     checkpointer = checkpointer or make_checkpointer()   # the privacy gate needs one to pause
     failure_log = failure_log or FailureLog()
-    limits = agents.load_limits()
+    limits = agents.load_limits(shop)
+    base_prompt, guide_for, model_options = SYSTEM_PROMPT, {}, {}
+    if not shop.is_sample:
+        base_prompt = shops.system_prompt(shop)
+        guide_for = {"guide": shop.guide, "shop": shop.name, "tables": shops.schema_text(shop.about)}
+        model_options = {"num_ctx": UPLOAD_CONTEXT}   # an unknown shop needs a longer prompt than the sample one
 
-    tools = [run_sql] + ([make_glossary_tool(store, user_id)] if store is not None else [])
+    tools = [run_sql if shop.is_sample else make_run_sql(shop.db)] + ([make_glossary_tool(store, user_id)] if store is not None else [])
     # with_retry only covers server hiccups (a dropped connection), not wrong answers.
-    executor_llm = ChatOllama(model=CHAT_MODEL, temperature=0).bind_tools(tools).with_retry(
+    executor_llm = ChatOllama(model=CHAT_MODEL, temperature=0, **model_options).bind_tools(tools).with_retry(
         stop_after_attempt=MODEL_RETRIES)
 
     # ---- Executor
     def executor(state: TeamState):
-        prompt = SYSTEM_PROMPT + agents.EXECUTOR_RULES
+        prompt = base_prompt + agents.EXECUTOR_RULES
         if store is not None:
             prompt += glossary_text(store, user_id)
         reply = executor_llm.invoke([SystemMessage(content=prompt)] + state["messages"])
@@ -98,7 +106,7 @@ def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=T
     # ---- Recovery
     def recovery(state: TeamState, config: RunnableConfig):
         verdict = state["verdict"]
-        status, left, advice, sections = agents.decide_recovery(verdict, state["retries_left"])
+        status, left, advice, sections = agents.decide_recovery(verdict, state["retries_left"], guide_for)
         thread_id = config.get("configurable", {}).get("thread_id")
 
         if status == "stop":

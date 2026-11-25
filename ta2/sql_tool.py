@@ -17,12 +17,15 @@ Call reset_faults() before each test so the counters start from zero.
 import os
 import re
 import sqlite3
+import time
 
 from langchain_core.tools import tool
 
 from config import SHOP_DB as DB_PATH
 
 MAX_ROWS = 50
+MAX_SECONDS = 10       # a join without a condition can run for hours, so it is cut off
+MAX_FETCH = 20_000
 _calls = {"queries": 0}   # how many queries reached execute() since the last reset
 
 # Any of these words means the query would change the database or its settings.
@@ -38,10 +41,12 @@ def check_query(query):
     if not text:
         return "Error: the query is empty. Write one SELECT statement."
 
-    if ";" in text:
+    # text in quotes is data, not a command: an item can be called 'Drop Shoulder T-shirt'
+    outside = re.sub(r"'(?:[^']|'')*'", "''", text)
+    if ";" in outside:
         return "Error: only one SQL statement is allowed at a time."
 
-    words = set(re.findall(r"[a-z_]+", text.lower()))
+    words = set(re.findall(r"[a-z_]+", outside.lower()))
     blocked = sorted(words.intersection(BLOCKED_WORDS))
     if blocked:
         return (f"Error: this tool is read-only. '{blocked[0].upper()}' would change "
@@ -71,7 +76,7 @@ def reset_faults():
     _calls["queries"] = 0
 
 
-def execute(query):
+def execute(query, db_path=DB_PATH):
     """Run an already-checked query on a read-only connection."""
     fault = os.environ.get("QM_FAULT")
     _calls["queries"] += 1
@@ -82,16 +87,24 @@ def execute(query):
     if fault == "locked" or (fault == "flaky" and _calls["queries"] <= 2):
         return "Error: database is locked (another program is writing to it)."
 
-    if not DB_PATH.exists():
+    if not db_path.exists():
         return "Error: shop.db not found. Run python data/make_shop_db.py first."
 
+    conn = None
     try:
-        with sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5) as conn:
-            cursor = conn.execute(query)
-            columns = [c[0] for c in cursor.description]
-            rows = cursor.fetchall()
+        conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True, timeout=5)
+        stop_at = time.monotonic() + MAX_SECONDS
+        conn.set_progress_handler(lambda: time.monotonic() > stop_at, 10_000)
+        cursor = conn.execute(query)
+        columns = [c[0] for c in cursor.description]
+        rows = cursor.fetchmany(MAX_FETCH)
     except sqlite3.Error as exc:
+        if "interrupted" in str(exc):
+            return f"Error: the query was too slow and was stopped after {MAX_SECONDS} seconds."
         return f"Error: {exc}. Check the table and column names against the schema."
+    finally:
+        if conn is not None:
+            conn.close()   # on Windows an open file cannot be deleted with its shop
 
     if not rows:
         return "The query ran fine but returned no rows."
@@ -108,3 +121,18 @@ def run_sql(query: str) -> str:
     if problem:
         return problem
     return execute(query.strip().rstrip(";"))
+
+
+def make_run_sql(db_path):
+    """The same tool, reading an uploaded shop instead of the sample one."""
+
+    @tool("run_sql")
+    def run_shop_sql(query: str) -> str:
+        """Run one read-only SQL SELECT query on the shop's data and return the rows.
+        Use it for every question about the shop."""
+        problem = check_query(query)
+        if problem:
+            return problem
+        return execute(query.strip().rstrip(";"), db_path)
+
+    return run_shop_sql

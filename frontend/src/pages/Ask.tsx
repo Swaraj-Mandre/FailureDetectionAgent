@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, stream, type LiveEvent, type Turn } from "../lib/api";
 import { useSettings } from "../lib/settings";
-import { month } from "../lib/words";
 import { Composer } from "../components/Composer";
 import { TestLab } from "../components/TestLab";
 import { TurnView } from "../components/TurnView";
@@ -14,7 +13,7 @@ export function Ask() {
   const { id } = useParams();
   const navigate = useNavigate();
   const settings = useSettings();
-  const { setup, shop, userId, monitorOn, fault, setFault, refreshConversations } = settings;
+  const { setup, shop, userId, setUserId, monitorOn, fault, setFault, conversations, refreshConversations } = settings;
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const threadRef = useRef<string | undefined>(id);
@@ -30,6 +29,10 @@ export function Ask() {
     if (id) api.conversation(id).then(setTurns).catch(() => setTurns([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // A past conversation belongs to the store it was asked in, so opening it switches to that store.
+  const asked = conversations.find((c) => c.id === id)?.user_id;
+  useEffect(() => { if (asked) setUserId(asked); }, [asked, id, setUserId]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns]);
 
@@ -67,12 +70,12 @@ export function Ask() {
   };
 
   // A planted failure applies to one question. A tour demo passes its own fault and Monitor setting.
-  const ask = (question: string, demo?: { fault: string | null; monitorOn: boolean }) => {
+  const ask = (question: string, demo?: { fault: string | null; monitorOn: boolean; store: string }) => {
     const f = demo ? demo.fault : fault;
     const m = demo ? demo.monitorOn : monitorOn;
     setTurns((all) => [...all, { question, fault: f, monitor_on: m, steps: [], queries: [], results: [], running: true }]);
     if (!demo) setFault(null);
-    return run("/api/ask", { thread_id: threadRef.current, question, user_id: userId, monitor_on: m, fault: f });
+    return run("/api/ask", { thread_id: threadRef.current, question, user_id: demo?.store ?? userId, monitor_on: m, fault: f });
   };
 
   // "Try it" on the project tour lands here with its questions, which are asked one after another.
@@ -80,9 +83,12 @@ export function Ask() {
     const demo = (location.state as { tryIt?: TryIt } | null)?.tryIt;
     if (!demo || handled.current === location.key) return;
     handled.current = location.key;
+    // the tour's questions are about the sample shop, whichever store is open
+    const store = setup?.users.some((u) => u.id === userId && u.uploaded) || !setup ? "owner_pune" : userId;
+    setUserId(store);
     (async () => {
       for (const [i, question] of demo.questions.entries()) {
-        await ask(question, { fault: i === 0 ? demo.fault ?? null : null, monitorOn: demo.monitorOn ?? true });
+        await ask(question, { fault: i === 0 ? demo.fault ?? null : null, monitorOn: demo.monitorOn ?? true, store });
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,14 +107,14 @@ export function Ask() {
       <header className="page-head">
         <div>
           <h1>{turns.length ? "Conversation" : "Ask"}</h1>
-          <p className="page-sub">{store} · {shop ? `${shop.orders} orders, ${month(shop.first_order)} to ${month(shop.last_order)}` : "loading the shop"}</p>
+          <p className="page-sub">{store} · {shop?.uploaded ? shop.facts.map((f) => (f.label === "Period" ? f.value : "")).filter(Boolean).concat(shop.files).join(", ") : shop ? shop.facts.slice(-2).map((f) => (f.label === "Period" ? f.value : `${f.value} ${f.label.toLowerCase()}`)).join(", ") : "loading the shop"}</p>
         </div>
         <TestLab />
       </header>
 
       <div className="thread">
         {turns.length === 0 ? (
-          <Welcome onPick={(q) => ask(q)} examples={setup?.examples ?? []} />
+          <Welcome onPick={(q) => ask(q)} examples={shop?.examples ?? []} />
         ) : (
           turns.map((turn, i) => (
             <TurnView key={i} turn={turn} faultName={faultName(turn.fault) ?? undefined}
@@ -124,7 +130,7 @@ export function Ask() {
 }
 
 function Welcome({ onPick, examples }: { onPick: (q: string) => void; examples: string[] }) {
-  const { shop } = useSettings();
+  const { shop, openUpload } = useSettings();
   return (
     <section className="welcome">
       <h2>Ask your shop anything.</h2>
@@ -135,10 +141,7 @@ function Welcome({ onPick, examples }: { onPick: (q: string) => void; examples: 
 
       {shop && (
         <dl className="shop-facts">
-          <div><dt>Customers</dt><dd>{shop.customers}</dd></div>
-          <div><dt>Products</dt><dd>{shop.products}</dd></div>
-          <div><dt>Orders</dt><dd>{shop.orders}</dd></div>
-          <div><dt>Period</dt><dd>{month(shop.first_order)} to {month(shop.last_order)}</dd></div>
+          {shop.facts.map((f) => <div key={f.label}><dt>{f.label}</dt><dd>{f.value}</dd></div>)}
         </dl>
       )}
 
@@ -154,6 +157,17 @@ function Welcome({ onPick, examples }: { onPick: (q: string) => void; examples: 
       <div className="examples">
         {examples.map((q) => <button key={q} className="example" onClick={() => onPick(q)}>{q}</button>)}
       </div>
+
+      {shop && (shop.uploaded ? (
+        <p className="welcome-foot">
+          These questions were made from {shop.files.join(", ")}. For your own data the checks are more general than
+          for the sample shop, so compare one important total with your own report first.
+        </p>
+      ) : (
+        <p className="welcome-foot">
+          This is a sample shop. <button className="link" onClick={() => openUpload()}>Add your own shop data</button> from Excel, CSV or SQL.
+        </p>
+      ))}
     </section>
   );
 }

@@ -11,6 +11,7 @@ import "./styles/tokens.css";
 import "./styles/app.css";
 import { SettingsProvider } from "./lib/settings";
 import { Sidebar } from "./components/Sidebar";
+import { UploadDialog } from "./components/UploadDialog";
 import { Ask } from "./pages/Ask";
 import { Failures } from "./pages/Failures";
 import { Quality } from "./pages/Quality";
@@ -34,6 +35,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="*" element={<Ask />} />
             </Routes>
           </main>
+          <UploadDialog />
         </div>
       </SettingsProvider>
     </BrowserRouter>
