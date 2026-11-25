@@ -37,6 +37,7 @@ import importer
 import shops
 from config import CHAT_MODEL, EMBED_MODEL, REPO_DIR, RETRY_BUDGET, SHOP_DB, STATE_DIR
 from graph import build_team, team_turn
+from meaning import month_name
 from memory import FailureLog, forget_terms, load_terms, make_checkpointer, make_store, open_db, save_term
 from sql_tool import reset_faults
 
@@ -206,6 +207,9 @@ def outcome_of(steps):
     """One word for the turn, for the badge on the answer."""
     if any(s["role"] == "stop" for s in steps):
         return "stopped"
+    results = [s["text"] for s in steps if s["role"] == "monitor" and s["text"].startswith(("result", "personal"))]
+    if results and "please verify" in results[-1]:
+        return "verify"
     if any(s["role"] == "recovery" for s in steps):
         return "recovered"
     if any(s["role"] == "person" for s in steps):
@@ -297,7 +301,7 @@ def shop(user_id: str = "owner_pune"):
         count = lambda table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         first, last = conn.execute("SELECT MIN(order_date), MAX(order_date) FROM orders").fetchone()
         facts = [{"label": t.capitalize(), "value": f"{count(t):,}"} for t in ("customers", "products", "orders")]
-    facts.append({"label": "Period", "value": f"{shops.month_name(first, short=True)} to {shops.month_name(last, short=True)}"})
+    facts.append({"label": "Period", "value": f"{month_name(first, short=True)} to {month_name(last, short=True)}"})
     return {"name": chosen.name, "uploaded": False, "facts": facts, "examples": EXAMPLES, "files": [], "tables": []}
 
 
@@ -482,15 +486,18 @@ def add_term(user_id: str, body: TermBody):
 if FRONTEND_DIST.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
+    # the page is checked for a newer build on every visit, otherwise the browser keeps showing an old one
+    FRESH = {"Cache-Control": "no-cache"}
+
     @app.get("/{path:path}")
     def page(path: str):
         try:
             file = (FRONTEND_DIST / path).resolve()
         except (ValueError, OSError):   # not a possible file name
-            return FileResponse(FRONTEND_DIST / "index.html")
+            return FileResponse(FRONTEND_DIST / "index.html", headers=FRESH)
         # serve only files inside the built frontend; a path with .. in it must not reach the rest of the disk
         inside = file.is_relative_to(FRONTEND_DIST.resolve())
-        return FileResponse(file if inside and file.is_file() else FRONTEND_DIST / "index.html")
+        return FileResponse(file if inside and file.is_file() else FRONTEND_DIST / "index.html", headers=FRESH)
 
 
 if __name__ == "__main__":

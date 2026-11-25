@@ -597,7 +597,8 @@ def read_sql(filename, text):
 # ------------------------------------------------------------------ cleaning
 
 def clean_name(text, used, fallback):
-    """A heading like 'Invoice No.' or 'राशी' becomes a safe, unique SQL name."""
+    """A heading like 'Invoice No.', 'BillNo' or 'राशी' becomes a safe, unique SQL name."""
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", str(text))   # BillNo, GSTNo
     out = "".join(ch if ch.isalnum() or unicodedata.category(ch).startswith("M") else "_" for ch in str(text).lower())
     out = re.sub(r"_+", "_", out).strip("_")[:48] or fallback
     if out[0].isdigit():

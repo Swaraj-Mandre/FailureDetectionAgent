@@ -23,6 +23,7 @@ from langgraph.prebuilt import ToolNode
 from langgraph.types import interrupt
 
 import agents
+import checks
 import shops
 from config import CHAT_MODEL, DEFAULT_USER, MODEL_RETRIES, RETRY_BUDGET, UPLOAD_CONTEXT
 from memory import FailureLog, glossary_text, make_checkpointer, make_glossary_tool
@@ -34,13 +35,14 @@ class TeamState(MessagesState):
     retries_left: int
     verdict: dict                               # the Monitor's latest verdict
     last_problem: str                           # the last real failure, quoted when the team stops
+    doubts: list[str]                           # points the Monitor already raised this turn (uploaded shops)
     events: Annotated[list[str], operator.add]  # one line per routing decision, for the traces
 
 
 def team_turn(question):
     """Input for one user turn. The retry budget refills every turn."""
     return {"messages": [HumanMessage(content=question)], "retries_left": RETRY_BUDGET,
-            "verdict": {}, "last_problem": "", "events": [f"user: {question}"]}
+            "verdict": {}, "last_problem": "", "doubts": [], "events": [f"user: {question}"]}
 
 
 def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=True, failure_log=None,
@@ -50,10 +52,12 @@ def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=T
     checkpointer = checkpointer or make_checkpointer()   # the privacy gate needs one to pause
     failure_log = failure_log or FailureLog()
     limits = agents.load_limits(shop)
-    base_prompt, guide_for, model_options = SYSTEM_PROMPT, {}, {}
+    base_prompt, guide_for, model_options, profile = SYSTEM_PROMPT, {}, {}, None
     if not shop.is_sample:
         base_prompt = shops.system_prompt(shop)
         guide_for = {"guide": shop.guide, "shop": shop.name, "tables": shops.schema_text(shop.about)}
+        if shop.about.get("rules", True):   # the evaluation switches the any-shop rules off to compare
+            profile = checks.Profile(shop.about, shop.db)
         model_options = {"num_ctx": UPLOAD_CONTEXT}   # an unknown shop needs a longer prompt than the sample one
 
     tools = [run_sql if shop.is_sample else make_run_sql(shop.db)] + ([make_glossary_tool(store, user_id)] if store is not None else [])
@@ -77,12 +81,14 @@ def build_team(checkpointer=None, store=None, user_id=DEFAULT_USER, monitor_on=T
     def monitor_result(state: TeamState):
         if not monitor_on:
             return agents.ok("monitor: OFF, result passed on unchecked")
-        return agents.check_tool_results(state["messages"], limits)
+        words = glossary_text(store, user_id) if profile is not None and store is not None else ""
+        return agents.check_tool_results(state["messages"], limits, profile, state.get("doubts") or (),
+                                         state["retries_left"], words)
 
     def monitor_answer(state: TeamState):
         if not monitor_on:
             return agents.ok("monitor: OFF, answer passed on unchecked")
-        return agents.check_answer(state["messages"])
+        return agents.check_answer(state["messages"], profile)
 
     def after_monitor_result(state: TeamState):
         return {"ok": "executor", "failure": "recovery", "needs_approval": "privacy_gate"}[state["verdict"]["status"]]

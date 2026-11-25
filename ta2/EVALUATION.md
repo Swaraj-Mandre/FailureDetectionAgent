@@ -83,3 +83,33 @@ After the fix, TA2 went from 3/3 wrong to 3/3 correct on the clean case, and the
 - 3 runs per case is small. At temperature 0 the repeats are close to identical, so they show stability more than spread. We saw the model's output change after the Ollama server reloaded the model, which is why every demo and table here comes from fresh runs.
 - One model, one database, one machine. A larger model would make fewer SQL mistakes, and then the Monitor would fire less often.
 - The judge checks numbers and names with fixed rules. It can miss a correct answer that is worded oddly. Every answer is saved in `results.json` so anyone can check by hand.
+
+## Uploaded shops
+
+```bash
+python ta2/evaluate_uploads.py known      # and blind1, blind2
+```
+
+Every question has a query written by us that gives the right answer. An answer is right only when the name and the number are both right. Each set runs twice, with the Monitor's any-shop rules (`checks.py`) off and on. Saved in `traces/eval/uploads_*.json`.
+
+How the tests were kept honest: the questions and right answers of a blind set were written before the work it measures, the model was not asked about them until the code was frozen, and the number reported is the first run. The first runs are kept in `uploads_blind1_first_run.json` and `uploads_blind2_first_run.json`.
+
+| Set | Shops | Questions | Before | First run, rules off | First run, rules on | Now, rules on |
+|---|---|---|---|---|---|---|
+| known | 5, used while building | 43 | | | | 43 |
+| blind1 | 3 | 36 | 23 | 23 | 24 | 35 (no longer blind) |
+| blind2 | 3 | 36 | 29 | 32 | 33 | 35 (no longer blind) |
+
+"Before" is commit 9bdf0d8 on the same files. For blind2 it was given the new splitting of names such as BillNo, so the old figure is slightly generous.
+
+What we learned:
+
+- **Rules on queries were not enough.** After the first round, blind1 went from 23 to 24 only. The Executor did not know what the columns meant.
+- **Meaning helped most.** Working out from the numbers which column is the pieces, the price of one piece, the line total, the bill number and the unpaid money, and telling the Executor, took blind2 from 29 to 32 with the rules off.
+- **The rules then fix a few more and can be wrong themselves.** One rule talked the model out of the correct UPI filter for a question about online payments. It now knows such words, and when a filter is dropped after a doubt the answer is marked Please verify.
+- **Still wrong on the first run of blind2 (3):** the most milk on a date answered with rupees, the stock valued at MRP when the cost was asked, and haircuts answered with the money. None of the three was marked.
+- **Limits of this test:** 11 invented shops, one person writing the questions, English only, one model, one run per question.
+
+Hand-written queries for the rules alone: 21 of 21 wrong queries were caught and 29 of 29 right queries raised no alarm. These were used while building.
+
+The sample shop does not use any of this. `evaluate.py` was run again after the change and every outcome in the tables above was the same. Timings were slower by up to 2.4 s, and the containment run with the Monitor on took 6.0 model calls instead of 5.0.

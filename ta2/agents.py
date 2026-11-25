@@ -16,6 +16,7 @@ import sqlite3
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
+import checks
 from config import RETRY_BUDGET, SHOP_DB
 from personal import personal_columns
 from rag import advise
@@ -151,20 +152,57 @@ def sensitive_columns(columns, rows=()):
     return personal_columns(columns, rows)
 
 
-def check_tool_results(messages, limits):
-    """The Monitor's verdict on the SQL results of the latest turn."""
+def said_by_person(messages):
+    return [m.content for m in messages if isinstance(m, HumanMessage) and m.name is None]
+
+
+def check_query(message, sql, columns, rows, messages, profile, raised, retries_left, words):
+    """The Monitor's any-shop rules (checks.py) on one result. None when there is nothing to say."""
+    said = said_by_person(messages)
+    findings = checks.find(profile, sql, said[-1] if said else "", " ".join(said) + " " + words, columns, rows)
+    wrong = [f for f in findings if f.strength == "wrong"]
+    doubts = [f for f in findings if f.strength == "doubt"]
+    fresh = [f for f in doubts if f.key not in raised]
+    if not findings:
+        gone = checks.removed_filters(raised, sql)
+        if gone:
+            return {"verdict": {"status": "ok"}, "events": [f"monitor: result kept, please verify (a filter on '{gone[0]}' was removed because the question does not mention it)"]}
+        return None
+    if not wrong and (not fresh or retries_left <= 0):
+        detail = "; ".join(f.detail for f in doubts)
+        return {"verdict": {"status": "ok"}, "events": [f"monitor: result kept, please verify ({detail})"]}
+    told = (wrong + fresh)[:3]
+    detail = "; ".join(f.detail for f in told)
+    kind = "wrong_query" if wrong else "doubt"
+    return {"messages": [ToolMessage(content=QUARANTINE_TEXT, tool_call_id=message.tool_call_id, id=message.id, name=message.name)],
+            "verdict": {"status": "failure", "kind": kind, "detail": detail, "sql": sql, "advice": " ".join(f.advice for f in told)},
+            "last_problem": f"{told[0].detail}, so the result was not used.",
+            "doubts": sorted(set(raised) | {f.key for f in fresh}),
+            "events": [f"monitor: silent bad result quarantined ({detail})"]}
+
+
+def check_tool_results(messages, limits, profile=None, raised=(), retries_left=0, words=""):
+    """The Monitor's verdict on the SQL results of the latest turn.
+    profile and the arguments after it are only used for uploaded shops."""
+    kept = None
     for message in latest_tool_results(messages):
         if message.name != "run_sql":
             continue
         sql = sql_for(messages, message.tool_call_id)
         if is_failure(message):
             kind = classify(message.content)
-            return {"verdict": {"status": "failure", "kind": kind, "detail": message.content, "sql": sql},
+            hint = {"advice": checks.closest_column(profile, message.content)} if profile is not None else {}
+            return {"verdict": {"status": "failure", "kind": kind, "detail": message.content, "sql": sql, **hint},
                     "last_problem": message.content,
                     "events": [f"monitor: tool error, type '{kind}'"]}
 
         parsed = parse_rows(message.content)
         if not parsed:
+            if profile is not None:   # no rows at all
+                verdict = check_query(message, sql, (), None, messages, profile, raised, retries_left, words)
+                if verdict and verdict["verdict"]["status"] != "ok":
+                    return verdict
+                kept = verdict or kept
             continue
         columns, rows = parsed
         ungrouped = ungrouped_columns(sql)
@@ -195,10 +233,15 @@ def check_tool_results(messages, limits):
                     "verdict": {"status": "failure", "kind": "bad_result", "detail": detail, "sql": sql},
                     "last_problem": "the result failed the Monitor's sanity check, so it was not used.",
                     "events": [f"monitor: silent bad result quarantined ({detail})"]}
+        if profile is not None:
+            verdict = check_query(message, sql, columns, rows, messages, profile, raised, retries_left, words)
+            if verdict and verdict["verdict"]["status"] != "ok":
+                return verdict
+            kept = verdict or kept
         if personal:
             return {"verdict": {"status": "needs_approval", "columns": personal},
                     "events": [f"monitor: personal data in result {personal}, asking a person"]}
-    return ok("monitor: result looks fine")
+    return kept or ok("monitor: result looks fine")
 
 
 def numbers_in(text):
@@ -236,14 +279,23 @@ def latest_result(messages):
     return None
 
 
-def check_answer(messages):
-    """The Monitor's verdict on the Executor's final answer."""
+def check_answer(messages, profile=None):
+    """The Monitor's verdict on the Executor's final answer.
+    profile is only given for uploaded shops, where numbers the model worked out itself are refused too."""
     result = latest_result(messages)
     if result is not None and (is_failure(result) or result.content == QUARANTINE_TEXT):
         detail = f"the answer was written without a valid result (last result: {result.content[:90]})"
         return {"verdict": {"status": "failure", "kind": "unsupported_answer", "detail": detail, "sql": ""},
                 "events": ["monitor: answer rejected, it is not backed by a valid result"]}
 
+    if profile is not None and result is not None and (parsed := parse_rows(result.content)):
+        invented = checks.numbers_not_in_rows(messages[-1].content, parsed[1], said_by_person(messages)[-1],
+                                              sql_for(messages, result.tool_call_id))
+        if invented:
+            detail = f"the answer contains {invented[0]:g}, which is not in the rows"
+            return {"verdict": {"status": "failure", "kind": "invented_number", "detail": detail, "sql": ""},
+                    "last_problem": f"{detail}.",
+                    "events": [f"monitor: answer does not match the data ({detail})"]}
     value = single_value(messages)
     if value is None:
         return ok("monitor: answer accepted")
@@ -281,16 +333,23 @@ def decide_recovery(verdict, retries_left, guide_for=None):
     retries_left -= 1
     if kind == "unsupported_answer":
         return "retry", retries_left, "Do not answer yet. Run a corrected query first and answer from its rows.", []
+    if kind in ("wrong_query", "doubt"):
+        return "retry", retries_left, f"The last result was not used. {verdict['advice']}", []
     if kind == "no_group_by":
         return "retry", retries_left, (f"The last result was quarantined: {verdict['detail']}, so SQLite "
                                        f"returned one arbitrary row. Keep the query, add GROUP BY "
                                        f"{verdict['group_by']} before ORDER BY, and run it again."), []
+    if kind == "invented_number":
+        return "retry", retries_left, (f"Use only numbers from the rows: {verdict['detail']}. Do no sums yourself. "
+                                       "If another number is needed, get it with run_sql."), []
     if kind == "answer_mismatch":
         return "retry", retries_left, f"Your answer must quote the exact number from the rows: {verdict['detail']}.", []
     if kind == "bad_result":
         advice, sections = advise(f"Suspicious numbers, silent failure: {verdict['detail']}", verdict["sql"], **guide_for)
         return "retry", retries_left, f"The last result was quarantined. Run the query again. {advice}", sections
     advice, sections = advise(verdict["detail"], verdict["sql"], **guide_for)
+    if verdict.get("advice"):   # uploaded shops: the exact column name comes before the general advice
+        advice = f"{verdict['advice']} {advice}"
     return "retry", retries_left, advice, sections
 
 

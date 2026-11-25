@@ -1,7 +1,7 @@
 // Everything the page asks the Python server, in one place.
 
 export type Role = "executor" | "monitor" | "recovery" | "person" | "stop";
-export type Outcome = "checked" | "recovered" | "stopped" | "approved" | "masked" | "unchecked";
+export type Outcome = "checked" | "recovered" | "stopped" | "approved" | "masked" | "unchecked" | "verify";
 
 export interface Step { role: Role; text: string; node: string }
 export interface Preview { columns: string[]; rows: string[][]; total: number; hidden: number; error?: string }

@@ -1,0 +1,1952 @@
+[
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "What was my sale in August 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   90775
+  ],
+  "answer": "My sale in August 2026 was Rs. 90,775.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (90775)"
+  ],
+  "sql": [
+   "SELECT SUM(net_amount) AS sale FROM hardware WHERE bill_date LIKE '2026-08%'"
+  ],
+  "seconds": 1.2,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "Which category brought in the most money?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Plumbing",
+   85280
+  ],
+  "answer": "The category \"Plumbing\" brought in the most money with a total of 85280.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (85280)"
+  ],
+  "sql": [
+   "SELECT category, SUM(net_amount) AS total FROM hardware GROUP BY category ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "How many bills did I make?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   80
+  ],
+  "answer": "You made 80 bills.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (80)"
+  ],
+  "sql": [
+   "SELECT COUNT(DISTINCT bill_number) AS how_many FROM hardware"
+  ],
+  "seconds": 0.5,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "How much money is pending in total?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   84890
+  ],
+  "answer": "The total amount of money still unpaid is Rs. 84,890.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (84890)"
+  ],
+  "sql": [
+   "SELECT SUM(pending) AS unpaid FROM hardware"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "Which customer bought the most?",
+  "outcome": "wrong",
+  "verify": false,
+  "truth": [
+   "Anita Shah",
+   77310
+  ],
+  "answer": "Anita Shah bought the most items, with a total of 47 purchases.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (47)"
+  ],
+  "sql": [
+   "SELECT customer_name, COUNT(*) AS purchases FROM hardware GROUP BY customer_name ORDER BY purchases DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "How many cement bags did I sell in September 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   35
+  ],
+  "answer": "In September 2026, 35 cement bags were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (35)"
+  ],
+  "sql": [
+   "SELECT SUM(qty) AS cement_bags_sold FROM hardware WHERE bill_date LIKE '2026-09%' AND product LIKE 'Cement bag%'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "How much discount did I give in total?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   1120
+  ],
+  "answer": "You gave a total discount of 1120.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (1120)"
+  ],
+  "sql": [
+   "SELECT SUM(discount) AS total_discount FROM hardware"
+  ],
+  "seconds": 0.5,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "What is the average amount of one bill?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   3010.75
+  ],
+  "answer": "The average amount of one bill is Rs. 3010.75.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (3010.75)"
+  ],
+  "sql": [
+   "SELECT AVG(t) AS average FROM (SELECT SUM(net_amount) AS t FROM hardware GROUP BY bill_number)"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "How much does Vijay Builders still have to pay me?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   28805
+  ],
+  "answer": "Vijay Builders still has to pay me 28805 Rs.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (28805)"
+  ],
+  "sql": [
+   "SELECT SUM(pending) AS unpaid FROM hardware WHERE customer_name = 'Vijay Builders'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": false,
+  "question": "Which day had the highest sale?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "2026-08-26",
+   13950
+  ],
+  "answer": "The day with the highest sale was 2026-08-26 with a total sale of Rs. 13,950.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (13950)"
+  ],
+  "sql": [
+   "SELECT bill_date, SUM(net_amount) AS total FROM hardware GROUP BY bill_date ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.9,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "What was my sale in August 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   90775
+  ],
+  "answer": "In August 2026, my sale was Rs. 90,775.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (90775)"
+  ],
+  "sql": [
+   "SELECT SUM(net_amount) AS sale FROM hardware WHERE bill_date LIKE '2026-08%'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "Which category brought in the most money?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Plumbing",
+   85280
+  ],
+  "answer": "The category \"Plumbing\" brought in the most money with a total of 85280.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (85280)"
+  ],
+  "sql": [
+   "SELECT category, SUM(net_amount) AS total FROM hardware GROUP BY category ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "How many bills did I make?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   80
+  ],
+  "answer": "You made 80 bills.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (80)"
+  ],
+  "sql": [
+   "SELECT COUNT(DISTINCT bill_number) AS how_many FROM hardware"
+  ],
+  "seconds": 0.5,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "How much money is pending in total?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   84890
+  ],
+  "answer": "The total amount of money still unpaid is Rs. 84,890.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (84890)"
+  ],
+  "sql": [
+   "SELECT SUM(pending) AS unpaid FROM hardware"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "Which customer bought the most?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Anita Shah",
+   77310
+  ],
+  "answer": "Anita Shah bought the most with a total of Rs.77,310.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: silent bad result quarantined (the query counts rows instead of adding up what was sold)",
+   "recovery: advice from the monitor's finding, 2 retries left",
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (77310)"
+  ],
+  "sql": [
+   "SELECT customer_name, COUNT(*) AS purchases FROM hardware GROUP BY customer_name ORDER BY purchases DESC LIMIT 1",
+   "SELECT customer_name, SUM(net_amount) AS total_spent FROM hardware GROUP BY customer_name ORDER BY total_spent DESC LIMIT 1"
+  ],
+  "seconds": 1.2,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "How many cement bags did I sell in September 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   35
+  ],
+  "answer": "In September 2026, 35 cement bags were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (35)"
+  ],
+  "sql": [
+   "SELECT SUM(qty) AS cement_bags_sold FROM hardware WHERE bill_date LIKE '2026-09%' AND product LIKE 'Cement bag%'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "How much discount did I give in total?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   1120
+  ],
+  "answer": "You gave a total discount of 1120.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (1120)"
+  ],
+  "sql": [
+   "SELECT SUM(discount) AS total_discount FROM hardware"
+  ],
+  "seconds": 0.5,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "What is the average amount of one bill?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   3010.75
+  ],
+  "answer": "The average amount of one bill is Rs. 3010.75.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (3010.75)"
+  ],
+  "sql": [
+   "SELECT AVG(t) AS average FROM (SELECT SUM(net_amount) AS t FROM hardware GROUP BY bill_number)"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "How much does Vijay Builders still have to pay me?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   28805
+  ],
+  "answer": "Vijay Builders still has to pay me 28805 Rs.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (28805)"
+  ],
+  "sql": [
+   "SELECT SUM(pending) AS unpaid FROM hardware WHERE customer_name = 'Vijay Builders'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "hardware",
+  "rules": true,
+  "question": "Which day had the highest sale?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "2026-08-26",
+   13950
+  ],
+  "answer": "The day with the highest sale was 2026-08-26 with a total sale of Rs. 13,950.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (13950)"
+  ],
+  "sql": [
+   "SELECT bill_date, SUM(net_amount) AS total FROM hardware GROUP BY bill_date ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.9,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "What was the total sale amount in August 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   29745.0
+  ],
+  "answer": "The total sale amount in August 2026 was Rs. 29,745.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (29745)"
+  ],
+  "sql": [
+   "SELECT SUM(amount) AS total FROM kirana_sale_report WHERE date LIKE '2026-08%'"
+  ],
+  "seconds": 1.0,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "Which item sold the most quantity?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Surf Excel 1kg",
+   123
+  ],
+  "answer": "The item \"Surf Excel 1kg\" sold the most quantity with a total of 123 pieces.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (123)"
+  ],
+  "sql": [
+   "SELECT item_name, SUM(qty) AS pieces FROM kirana_sale_report GROUP BY item_name ORDER BY pieces DESC LIMIT 1"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "What was the sale to Hotel Annapurna?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   16632.0
+  ],
+  "answer": "The sale to Hotel Annapurna was Rs. 16,632.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (16632)"
+  ],
+  "sql": [
+   "SELECT SUM(amount) AS sale_to_Hotel_Annapurna FROM kirana_sale_report WHERE party_name = 'Hotel Annapurna'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "On which day was the sale the highest?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "2026-08-10",
+   2055.0
+  ],
+  "answer": "The sale on 2026-08-10 had the highest total amount of Rs 2055.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (2055)"
+  ],
+  "sql": [
+   "SELECT date, SUM(amount) AS total FROM kirana_sale_report GROUP BY date ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "How many invoices were made in September 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   28
+  ],
+  "answer": "In September 2026, there were 28 invoices made.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (28)"
+  ],
+  "sql": [
+   "SELECT COUNT(DISTINCT invoice_no) AS how_many FROM kirana_sale_report WHERE date LIKE '2026-09%'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "Who owes me the most money?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Ramesh Patil",
+   9423.0
+  ],
+  "answer": "Ramesh Patil owes me the most money, Rs 9423.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (9423)"
+  ],
+  "sql": [
+   "SELECT a.party_name, SUM(a.balance_due) AS unpaid FROM kirana_sale_report a GROUP BY a.party_name ORDER BY unpaid DESC LIMIT 1"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "How much total sale came through UPI?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   24946.0
+  ],
+  "answer": "The total sale that came through UPI is Rs. 24,946.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (24946)"
+  ],
+  "sql": [
+   "SELECT SUM(amount) AS total FROM kirana_sale_report WHERE payment_type = 'UPI'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": false,
+  "question": "What was the average bill value per invoice?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   988.0595238095239
+  ],
+  "answer": "The average bill value per invoice is Rs. 988.06.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (988.06)"
+  ],
+  "sql": [
+   "SELECT AVG(t) AS average FROM (SELECT SUM(amount) AS t FROM kirana_sale_report GROUP BY invoice_no)"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "What was the total sale amount in August 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   29745.0
+  ],
+  "answer": "The total sale amount in August 2026 was Rs. 29,745.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (29745)"
+  ],
+  "sql": [
+   "SELECT SUM(amount) AS total FROM kirana_sale_report WHERE date LIKE '2026-08%'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "Which item sold the most quantity?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Surf Excel 1kg",
+   123
+  ],
+  "answer": "The item \"Surf Excel 1kg\" sold the most quantity with a total of 123 pieces.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (123)"
+  ],
+  "sql": [
+   "SELECT item_name, SUM(qty) AS pieces FROM kirana_sale_report GROUP BY item_name ORDER BY pieces DESC LIMIT 1"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "What was the sale to Hotel Annapurna?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   16632.0
+  ],
+  "answer": "The sale to Hotel Annapurna was Rs. 16,632.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (16632)"
+  ],
+  "sql": [
+   "SELECT SUM(amount) AS sale_to_Hotel_Annapurna FROM kirana_sale_report WHERE party_name = 'Hotel Annapurna'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "On which day was the sale the highest?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "2026-08-10",
+   2055.0
+  ],
+  "answer": "The sale on 2026-08-10 had the highest total amount of Rs 2055.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (2055)"
+  ],
+  "sql": [
+   "SELECT date, SUM(amount) AS total FROM kirana_sale_report GROUP BY date ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "How many invoices were made in September 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   28
+  ],
+  "answer": "In September 2026, there were 28 invoices made.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (28)"
+  ],
+  "sql": [
+   "SELECT COUNT(DISTINCT invoice_no) AS how_many FROM kirana_sale_report WHERE date LIKE '2026-09%'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "Who owes me the most money?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Ramesh Patil",
+   9423.0
+  ],
+  "answer": "Ramesh Patil owes me the most money, Rs 9423.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (9423)"
+  ],
+  "sql": [
+   "SELECT a.party_name, SUM(a.balance_due) AS unpaid FROM kirana_sale_report a GROUP BY a.party_name ORDER BY unpaid DESC LIMIT 1"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "How much total sale came through UPI?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   24946.0
+  ],
+  "answer": "The total sale that came through UPI is Rs. 24,946.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (24946)"
+  ],
+  "sql": [
+   "SELECT SUM(amount) AS total FROM kirana_sale_report WHERE payment_type = 'UPI'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "kirana",
+  "rules": true,
+  "question": "What was the average bill value per invoice?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   988.0595238095239
+  ],
+  "answer": "The average bill value per invoice is Rs. 988.06.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (988.06)"
+  ],
+  "sql": [
+   "SELECT AVG(t) AS average FROM (SELECT SUM(amount) AS t FROM kirana_sale_report GROUP BY invoice_no)"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": false,
+  "question": "What is the total of all bills in October 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   12780.0
+  ],
+  "answer": "The total of all bills in October 2026 is Rs. 12,780.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (12780)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS total FROM medical_bills WHERE bill_date LIKE '2026-10%'"
+  ],
+  "seconds": 1.1,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": false,
+  "question": "Which medicine has the lowest stock?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Allegra 120",
+   8
+  ],
+  "answer": "The medicine with the lowest stock is Allegra 120.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer accepted"
+  ],
+  "sql": [
+   "SELECT medicine FROM medical_stock ORDER BY stock_qty ASC LIMIT 1"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": false,
+  "question": "How many medicines expire before 1 January 2027?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   3
+  ],
+  "answer": "There are 3 medicines that expire before 1 January 2027.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (3)"
+  ],
+  "sql": [
+   "SELECT COUNT(*) AS expiring_medicines FROM medical_stock WHERE expiry_date < '2027-01-01'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": false,
+  "question": "Which company's medicines earned the most?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Alkem",
+   11470.0
+  ],
+  "answer": "The company, Alkem, earned the most with a total of Rs 11470.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (11470)"
+  ],
+  "sql": [
+   "SELECT b.company, SUM(a.total) AS total FROM medical_bills a JOIN medical_stock b ON b.medicine = a.medicine GROUP BY b.company ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.9,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": false,
+  "question": "What is the value of my current stock at MRP?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   16625
+  ],
+  "answer": "The value of your current stock at MRP is Rs. 16625.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (16625)"
+  ],
+  "sql": [
+   "SELECT SUM(stock_qty * mrp) AS total FROM medical_stock"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": false,
+  "question": "How many units of Dolo 650 were sold?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   54
+  ],
+  "answer": "54 units of Dolo 650 were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (54)"
+  ],
+  "sql": [
+   "SELECT SUM(qty) AS total FROM medical_bills WHERE medicine = 'Dolo 650'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": true,
+  "question": "What is the total of all bills in October 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   12780.0
+  ],
+  "answer": "The total of all bills in October 2026 is Rs. 12,780.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (12780)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS total FROM medical_bills WHERE bill_date LIKE '2026-10%'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": true,
+  "question": "Which medicine has the lowest stock?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Allegra 120",
+   8
+  ],
+  "answer": "The medicine with the lowest stock is Allegra 120.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer accepted"
+  ],
+  "sql": [
+   "SELECT medicine FROM medical_stock ORDER BY stock_qty ASC LIMIT 1"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": true,
+  "question": "How many medicines expire before 1 January 2027?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   3
+  ],
+  "answer": "There are 3 medicines that expire before 1 January 2027.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (3)"
+  ],
+  "sql": [
+   "SELECT COUNT(*) AS expiring_medicines FROM medical_stock WHERE expiry_date < '2027-01-01'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": true,
+  "question": "Which company's medicines earned the most?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Alkem",
+   11470.0
+  ],
+  "answer": "The company, Alkem, earned the most with a total of Rs 11470.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (11470)"
+  ],
+  "sql": [
+   "SELECT b.company, SUM(a.total) AS total FROM medical_bills a JOIN medical_stock b ON b.medicine = a.medicine GROUP BY b.company ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.9,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": true,
+  "question": "What is the value of my current stock at MRP?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   16625
+  ],
+  "answer": "The value of your current stock at MRP is Rs. 16625.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (16625)"
+  ],
+  "sql": [
+   "SELECT SUM(stock_qty * mrp) AS total FROM medical_stock"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "medical",
+  "rules": true,
+  "question": "How many units of Dolo 650 were sold?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   54
+  ],
+  "answer": "54 units of Dolo 650 were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (54)"
+  ],
+  "sql": [
+   "SELECT SUM(qty) AS total FROM medical_bills WHERE medicine = 'Dolo 650'"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": false,
+  "question": "Which item sold the most pieces?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Men's Cotton Kurta",
+   88
+  ],
+  "answer": "The item \"Men's Cotton Kurta\" sold the most pieces with a total of 88 pieces.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (88)"
+  ],
+  "sql": [
+   "SELECT b.itm_desc, SUM(a.pcs) AS pieces FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id GROUP BY b.itm_desc ORDER BY pieces DESC LIMIT 1"
+  ],
+  "seconds": 1.2,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": false,
+  "question": "What was the total sale value in September 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   92650.0
+  ],
+  "answer": "The total sale value in September 2026 was Rs. 92,650.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (92650)"
+  ],
+  "sql": [
+   "SELECT SUM(a.pcs * b.sell_price) AS total FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id WHERE a.sale_dt LIKE '2026-09%'"
+  ],
+  "seconds": 1.0,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": false,
+  "question": "Which supplier's items gave the most sale value?",
+  "outcome": "wrong",
+  "verify": false,
+  "truth": [
+   "Laxmi Fabrics",
+   184800.0
+  ],
+  "answer": "The supplier \"Laxmi Fabrics\" gave the most sale value with a total of Rs 74,400.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: tool error, type 'schema'",
+   "recovery: advice from guide sections ['Unknown column (no such column)', 'Unknown table (no such table)', 'Ambiguous column name'], 2 retries left",
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (74400)"
+  ],
+  "sql": [
+   "SELECT s.sup_name, SUM(i.pcs * i.sell_price) AS total_value FROM tbl_sale a JOIN tbl_item i ON i.itm_id = a.itm_id JOIN tbl_supplier s ON s.sup_id = i.sup_id GROUP BY s.sup_name ORDER BY total_value DESC LIMIT 1",
+   "SELECT s.sup_name, SUM(i.sell_price) AS total_value FROM tbl_sale a JOIN tbl_item i ON i.itm_id = a.itm_id JOIN tbl_supplier s ON s.sup_id = i.sup_id GROUP BY s.sup_name ORDER BY total_value DESC LIMIT 1"
+  ],
+  "seconds": 9.8,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": false,
+  "question": "How many sales were returned?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   18
+  ],
+  "answer": "18 sales were returned.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (18)"
+  ],
+  "sql": [
+   "SELECT SUM(CASE WHEN returned THEN 1 ELSE 0 END) AS returned_sales FROM tbl_sale"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": false,
+  "question": "What is the total profit (selling price minus cost price) on all sales?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   144312.0
+  ],
+  "answer": "The total profit on all sales is Rs. 144,312.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (144312)"
+  ],
+  "sql": [
+   "SELECT SUM(a.pcs * (b.sell_price - b.cost_price)) AS profit FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id"
+  ],
+  "seconds": 0.9,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": false,
+  "question": "How many suppliers are there?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   3
+  ],
+  "answer": "There are 3 suppliers.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (3)"
+  ],
+  "sql": [
+   "SELECT COUNT(*) AS num_suppliers FROM tbl_supplier"
+  ],
+  "seconds": 0.5,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": false,
+  "question": "How many Drop Shoulder T-shirt pieces were sold?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   79
+  ],
+  "answer": "79 pieces of Drop Shoulder T-shirt were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (79)"
+  ],
+  "sql": [
+   "SELECT SUM(a.pcs) AS pieces FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id WHERE b.itm_desc = 'Drop Shoulder T-shirt'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": true,
+  "question": "Which item sold the most pieces?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Men's Cotton Kurta",
+   88
+  ],
+  "answer": "The item \"Men's Cotton Kurta\" sold the most pieces with a total of 88 pieces.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (88)"
+  ],
+  "sql": [
+   "SELECT b.itm_desc, SUM(a.pcs) AS pieces FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id GROUP BY b.itm_desc ORDER BY pieces DESC LIMIT 1"
+  ],
+  "seconds": 1.0,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": true,
+  "question": "What was the total sale value in September 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   92650.0
+  ],
+  "answer": "The total sale value in September 2026 was Rs. 92,650.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (92650)"
+  ],
+  "sql": [
+   "SELECT SUM(a.pcs * b.sell_price) AS total FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id WHERE a.sale_dt LIKE '2026-09%'"
+  ],
+  "seconds": 1.0,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": true,
+  "question": "Which supplier's items gave the most sale value?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Laxmi Fabrics",
+   184800.0
+  ],
+  "answer": "The supplier \"Laxmi Fabrics\" gave the most sale value with a total of Rs. 184,800.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: tool error, type 'schema'",
+   "recovery: advice from guide sections ['Unknown column (no such column)', 'Unknown table (no such table)', 'Ambiguous column name'], 2 retries left",
+   "executor: calls run_sql",
+   "monitor: tool error, type 'schema'",
+   "recovery: advice from guide sections ['Unknown column (no such column)', 'Unknown table (no such table)', 'Ambiguous column name'], 1 retry left",
+   "executor: calls run_sql",
+   "monitor: tool error, type 'schema'",
+   "recovery: advice from guide sections ['Unknown column (no such column)', 'Unknown table (no such table)', 'Ambiguous column name'], 0 retries left",
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (184800)"
+  ],
+  "sql": [
+   "SELECT s.sup_name, SUM(i.pcs * i.sell_price) AS total_value FROM tbl_sale a JOIN tbl_item i ON i.itm_id = a.itm_id JOIN tbl_supplier s ON s.sup_id = i.sup_id GROUP BY s.sup_name ORDER BY total_value DESC LIMIT 1",
+   "SELECT s.sup_name, SUM(i.pcs * i.sell_price) AS total_value FROM tbl_sale a JOIN tbl_item i ON i.itm_id = a.itm_id JOIN tbl_supplier s ON s.sup_id = i.sup_id GROUP BY s.sup_name ORDER BY total_value DESC LIMIT 1",
+   "SELECT s.sup_name, SUM(i.pcs * i.sell_price) AS total_value FROM tbl_sale a JOIN tbl_item i ON i.itm_id = a.itm_id JOIN tbl_supplier s ON s.sup_id = i.sup_id GROUP BY s.sup_name ORDER BY total_value DESC LIMIT 1",
+   "SELECT s.sup_name, SUM(a.pcs * i.sell_price) AS total_value FROM tbl_sale a JOIN tbl_item i ON i.itm_id = a.itm_id JOIN tbl_supplier s ON s.sup_id = i.sup_id GROUP BY s.sup_name ORDER BY total_value DESC LIMIT 1"
+  ],
+  "seconds": 24.2,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": true,
+  "question": "How many sales were returned?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   18
+  ],
+  "answer": "18 sales were returned.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (18)"
+  ],
+  "sql": [
+   "SELECT SUM(CASE WHEN returned THEN 1 ELSE 0 END) AS returned_sales FROM tbl_sale"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": true,
+  "question": "What is the total profit (selling price minus cost price) on all sales?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   144312.0
+  ],
+  "answer": "The total profit on all sales is Rs. 144,312.00.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (144312)"
+  ],
+  "sql": [
+   "SELECT SUM(a.pcs * (b.sell_price - b.cost_price)) AS profit FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id"
+  ],
+  "seconds": 0.9,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": true,
+  "question": "How many suppliers are there?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   3
+  ],
+  "answer": "There are 3 suppliers.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (3)"
+  ],
+  "sql": [
+   "SELECT COUNT(*) AS num_suppliers FROM tbl_supplier"
+  ],
+  "seconds": 0.4,
+  "stopped": false
+ },
+ {
+  "shop": "garments",
+  "rules": true,
+  "question": "How many Drop Shoulder T-shirt pieces were sold?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   79
+  ],
+  "answer": "79 pieces of Drop Shoulder T-shirt were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (79)"
+  ],
+  "sql": [
+   "SELECT SUM(a.pcs) AS pieces FROM tbl_sale a JOIN tbl_item b ON b.itm_id = a.itm_id WHERE b.itm_desc = 'Drop Shoulder T-shirt'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "How much did I sell in July 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   947905
+  ],
+  "answer": "In July 2026, I sold a total of 947,905 units.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (947905)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS total FROM orders WHERE invoice_date LIKE '2026-07%'"
+  ],
+  "seconds": 1.0,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "Which brand sold the most units?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Xiaomi",
+   112
+  ],
+  "answer": "The brand that sold the most units is Xiaomi with a total of 112 units.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (112)"
+  ],
+  "sql": [
+   "SELECT brand, SUM(units) AS total_units FROM orders GROUP BY brand ORDER BY total_units DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "Which salesman made the most sales in rupees?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Ravi",
+   1571661
+  ],
+  "answer": "Salesman Ravi made the most sales in rupees with a total of 1,571,661.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (1.57166e+06)"
+  ],
+  "sql": [
+   "SELECT salesman, SUM(total) AS total FROM orders GROUP BY salesman ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "How many invoices are there?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   90
+  ],
+  "answer": "There are 90 invoices.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (90)"
+  ],
+  "sql": [
+   "SELECT COUNT(DISTINCT invoice_no) AS how_many FROM orders"
+  ],
+  "seconds": 0.5,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "How much did customers pay by card?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   802022
+  ],
+  "answer": "Customers paid a total of 802022 by card.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (802022)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS total_paid_by_card FROM orders WHERE mode = 'Card'"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "What is the average bill amount?",
+  "outcome": "wrong",
+  "verify": false,
+  "truth": [
+   29622.566666666666
+  ],
+  "answer": "The average bill amount is Rs. 19748.38.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (19748.4)"
+  ],
+  "sql": [
+   "SELECT AVG(total) AS average_bill FROM orders"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "How many Galaxy A16 phones were sold?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   73
+  ],
+  "answer": "73 Galaxy A16 phones were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (73)"
+  ],
+  "sql": [
+   "SELECT SUM(units) AS total FROM orders WHERE model = 'Galaxy A16' GROUP BY model"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "How much did I spend on purchases in total?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   1811781
+  ],
+  "answer": "I spent a total of 1811781 Rupees on purchases.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (1.81178e+06)"
+  ],
+  "sql": [
+   "SELECT SUM(quantity * cost) AS total_spent FROM purchases"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "Which vendor did I buy the most from in rupees?",
+  "outcome": "wrong",
+  "verify": false,
+  "truth": [
+   "Metro Dist",
+   1153390
+  ],
+  "answer": "Metro Dist did the most purchases with a total cost of 217,066 Rupees.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (217066)"
+  ],
+  "sql": [
+   "SELECT vendor, SUM(cost) AS total FROM purchases GROUP BY vendor ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "Which is the least sold model by units?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Back cover",
+   39
+  ],
+  "answer": "The least sold model by units is the \"Back cover\" with 39 units.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (39)"
+  ],
+  "sql": [
+   "SELECT model, SUM(units) AS pieces FROM orders GROUP BY model ORDER BY pieces ASC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "What was the sale of Xiaomi in August 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   207968
+  ],
+  "answer": "In August 2026, the sale of Xiaomi was Rs. 2,07,968.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (207968)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS sale FROM orders WHERE invoice_date LIKE '2026-08%' AND brand = 'Xiaomi'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": false,
+  "question": "Which customer spent the most?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Walk-in",
+   843923
+  ],
+  "answer": "Walk-in customer spent the most with a total of 843,923.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (843923)"
+  ],
+  "sql": [
+   "SELECT customer, SUM(total) AS total_spent FROM orders GROUP BY customer ORDER BY total_spent DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "How much did I sell in July 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   947905
+  ],
+  "answer": "In July 2026, I sold a total of 947,905 units.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (947905)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS total FROM orders WHERE invoice_date LIKE '2026-07%'"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "Which brand sold the most units?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Xiaomi",
+   112
+  ],
+  "answer": "The brand that sold the most units is Xiaomi with a total of 112 units.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (112)"
+  ],
+  "sql": [
+   "SELECT brand, SUM(units) AS total_units FROM orders GROUP BY brand ORDER BY total_units DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "Which salesman made the most sales in rupees?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Ravi",
+   1571661
+  ],
+  "answer": "Salesman Ravi made the most sales in rupees with a total of 1,571,661.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (1.57166e+06)"
+  ],
+  "sql": [
+   "SELECT salesman, SUM(total) AS total FROM orders GROUP BY salesman ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "How many invoices are there?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   90
+  ],
+  "answer": "There are 90 invoices.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (90)"
+  ],
+  "sql": [
+   "SELECT COUNT(DISTINCT invoice_no) AS how_many FROM orders"
+  ],
+  "seconds": 0.5,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "How much did customers pay by card?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   802022
+  ],
+  "answer": "Customers paid a total of 802022 by card.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (802022)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS total_paid_by_card FROM orders WHERE mode = 'Card'"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "What is the average bill amount?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   29622.566666666666
+  ],
+  "answer": "The average bill amount is Rs. 29622.57.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: silent bad result quarantined (AVG(total) is the average of the lines, and one bill has several lines)",
+   "recovery: advice from the monitor's finding, 2 retries left",
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (29622.6)"
+  ],
+  "sql": [
+   "SELECT AVG(total) AS average_bill FROM orders",
+   "SELECT AVG(t) AS average FROM (SELECT SUM(total) AS t FROM orders GROUP BY invoice_no)"
+  ],
+  "seconds": 1.0,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "How many Galaxy A16 phones were sold?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   73
+  ],
+  "answer": "73 Galaxy A16 phones were sold.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (73)"
+  ],
+  "sql": [
+   "SELECT SUM(units) AS total FROM orders WHERE model = 'Galaxy A16' GROUP BY model"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "How much did I spend on purchases in total?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   1811781
+  ],
+  "answer": "I spent a total of 1811781 Rupees on purchases.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (1.81178e+06)"
+  ],
+  "sql": [
+   "SELECT SUM(quantity * cost) AS total_spent FROM purchases"
+  ],
+  "seconds": 0.6,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "Which vendor did I buy the most from in rupees?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Metro Dist",
+   1153390
+  ],
+  "answer": "Metro Dist did the most purchases in rupees with a total of 1,153,390 Rupees.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: silent bad result quarantined (SUM(cost) adds up the price of one piece without the quantity)",
+   "recovery: advice from the monitor's finding, 2 retries left",
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (1.15339e+06)"
+  ],
+  "sql": [
+   "SELECT vendor, SUM(cost) AS total FROM purchases GROUP BY vendor ORDER BY total DESC LIMIT 1",
+   "SELECT vendor, SUM(purchases.quantity * cost) AS total FROM purchases GROUP BY vendor ORDER BY total DESC LIMIT 1"
+  ],
+  "seconds": 1.2,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "Which is the least sold model by units?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Back cover",
+   39
+  ],
+  "answer": "The least sold model by units is the \"Back cover\" with 39 units.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (39)"
+  ],
+  "sql": [
+   "SELECT model, SUM(units) AS pieces FROM orders GROUP BY model ORDER BY pieces ASC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "What was the sale of Xiaomi in August 2026?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   207968
+  ],
+  "answer": "In August 2026, the sale of Xiaomi was Rs. 2,07,968.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (207968)"
+  ],
+  "sql": [
+   "SELECT SUM(total) AS sale FROM orders WHERE invoice_date LIKE '2026-08%' AND brand = 'Xiaomi'"
+  ],
+  "seconds": 0.8,
+  "stopped": false
+ },
+ {
+  "shop": "mobile",
+  "rules": true,
+  "question": "Which customer spent the most?",
+  "outcome": "right",
+  "verify": false,
+  "truth": [
+   "Walk-in",
+   843923
+  ],
+  "answer": "Walk-in customer spent the most with a total of 843,923.",
+  "events": [
+   "executor: calls run_sql",
+   "monitor: result looks fine",
+   "executor: writes the answer",
+   "monitor: answer matches the data (843923)"
+  ],
+  "sql": [
+   "SELECT customer, SUM(total) AS total_spent FROM orders GROUP BY customer ORDER BY total_spent DESC LIMIT 1"
+  ],
+  "seconds": 0.7,
+  "stopped": false
+ }
+]

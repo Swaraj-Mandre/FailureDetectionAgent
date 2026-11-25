@@ -217,7 +217,16 @@ Press **+** in the question box (or drop a file on it) and choose a file. QueryM
 
 Up to 8 files, 10 MB each. Four ready-made files to try are in [data/sample_uploads](data/sample_uploads). Each shop gets its own database, prompt, Monitor limits, saved words and conversations, all worked out from the file. Removing a shop deletes all of it. The two sample stores work exactly as before, and every number in the Results section is measured on them.
 
-**How well it works:** we tuned on four made-up shops until all 31 test questions were right, then asked 12 questions about a fifth shop it had never seen: 9 right, 3 wrong. So compare one important total with your own report first. The Monitor's checks for uploaded shops are more general than for the sample shop.
+**How it knows your shop:** it works out what each column means from the numbers. If pieces x price = amount on nearly every row, it knows which column is which, which total must not be multiplied again, and which number is a bill that repeats on several rows. The Executor gets this as notes and worked examples, and the Monitor uses it to check every query: prices added up without the quantity, rows counted twice by a join, lines counted as bills, a month or a customer left out, a filter nobody asked for. If a point cannot be settled, the answer is marked **Please verify**.
+
+**How well it works:** measured on six made-up shops that were first asked about only after the code was frozen, 36 questions per test.
+
+| Blind test | Before this work | First run after it |
+|:--|:--:|:--:|
+| 1 (restaurant, stationery, fertiliser shop) | 23 of 36 right | 24 of 36, which led to the second round of work |
+| 2 (dairy, distributor, salon) | 29 of 36 right | **33 of 36 right** |
+
+The wrong answers in test 2 were plausible numbers with no warning, so compare one important total with your own report first. Run it yourself with `python ta2/evaluate_uploads.py blind2`. Details in [ta2/EVALUATION.md](ta2/EVALUATION.md).
 
 **Or run everything in the terminal** (each demo saves its output to `traces/`):
 
@@ -276,8 +285,11 @@ FailureDetectionAgent/
 │   ├── rag.py         Chroma index over the error guides in corpus/
 │   ├── importer.py    reads Excel, CSV, SQL and SQLite files into a clean database
 │   ├── shops.py       what the agents need to know about an uploaded shop
+│   ├── meaning.py     what each column means, worked out from the numbers
+│   ├── checks.py      the Monitor's rules for uploaded shops
 │   ├── personal.py    which columns and values count as personal data
 │   ├── evaluate.py    PBA 1 vs PBA 2, failure injection, containment
+│   ├── evaluate_uploads.py   answers on uploaded shops against known results
 │   └── server.py      the web API: live streaming, approval, logs, results
 ├── frontend/        the React web app (built copy in frontend/dist)
 ├── traces/          saved output of every run: the evidence
@@ -302,7 +314,7 @@ FailureDetectionAgent/
 - **Small samples:** 3 runs per case, 10 for containment. At temperature 0 they show stability more than spread.
 - **The rules know only what we wrote down.** A wrong number inside the limits still gets through.
 - **The model can invent stand-ins** for data that does not exist (ask for loyalty points). Neither version catches it.
-- **Uploaded shops are harder.** 9 of 12 questions right on a shop it had never seen. The wrong ones were plausible numbers inside the limits.
+- **Uploaded shops are harder.** 33 of 36 questions right on three shops it had never seen. The wrong ones were plausible numbers with no warning. All test shops are made up by us.
 - **One small model.** A bigger model makes fewer mistakes, so the cost gap would shrink.
 
 ---

@@ -474,3 +474,4 @@ table.log, table.compare, table.mini { width: 100%; border-collapse: collapse; f
   padding: var(--s4) var(--s6); border-top: 1px solid var(--line); background: var(--surface);
 }
 .upload-foot p { flex: 1 1 220px; font-size: var(--text-xs); color: var(--muted); }
+.answer-verify { margin-top: var(--s3); padding: var(--s3) var(--s4); border-radius: var(--r-sm); background: var(--monitor-soft); color: var(--monitor); font-size: var(--text-sm); }

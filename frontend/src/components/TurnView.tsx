@@ -38,7 +38,7 @@ export function TurnView({ turn, faultName, retryBudget, onDecide }: Props) {
           <div className="approval" role="alertdialog" aria-label="Personal data approval">
             <RoleMark role="person" />
             <div>
-              <h3>This answer includes customers' email and phone numbers.</h3>
+              <h3>This answer includes private data: {(turn.approval.match(/\[(.*)\]/)?.[1] ?? "").replace(/'/g, "").replace(/_/g, " ")}.</h3>
               <p>QueryMend paused before showing them. Do you want them in the answer?</p>
               <div className="approval-actions">
                 <button className="button button-person" onClick={() => onDecide("approve")}><Eye size={16} /> Show them</button>
@@ -61,6 +61,9 @@ export function TurnView({ turn, faultName, retryBudget, onDecide }: Props) {
               )}
             </div>
             <p className="answer-text">{turn.answer}</p>
+            {turn.outcome === "verify" && (
+              <p className="answer-verify">The Monitor is not sure: {turn.steps.map((s) => s.text.match(/please verify \((.*)\)$/)?.[1]).filter(Boolean).at(-1)?.split("; ")[0]}. Compare this number with your own record.</p>
+            )}
             {turn.table && <div className="answer-table"><DataPreview preview={turn.table} limit={12} /></div>}
           </div>
         )}
