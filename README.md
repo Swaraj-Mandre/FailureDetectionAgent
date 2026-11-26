@@ -19,6 +19,9 @@
 ![No API keys](https://img.shields.io/badge/API%20keys-none-059669)
 ![Cost](https://img.shields.io/badge/cost-free-059669)
 
+**Try it online: [swaraj-mandre--querymend.modal.run](https://swaraj-mandre--querymend.modal.run)**<br>
+The first visit after a quiet spell takes about half a minute while it wakes up.
+
 </div>
 
 ---
@@ -220,6 +223,8 @@ On your own computer the app has one user and no limits. Started with `QM_PUBLIC
 | Other websites | Requests from other pages are refused, and the page may only load its own scripts |
 
 The limits are environment variables, listed at the top of `ta2/visitors.py`. The model still has to run somewhere: online mode changes who may see what, not where the answers come from.
+
+**The live copy** runs on [Modal](https://modal.com) from `deploy/modal_app.py`: one container holds Ollama, both models and the app in online mode, so the agent still calls nothing outside it and needs no API key. It sleeps a few minutes after the last visitor and wakes on the next visit in about half a minute, and conversations and uploads are gone when it sleeps. On 4 CPU cores a question takes about 10 to 20 seconds. To put up your own copy: `pip install modal`, `modal token new`, set `WORKSPACE` in the file to your Modal workspace, then `modal deploy deploy/modal_app.py`.
 
 </details>
 
